@@ -1,0 +1,9 @@
+3 2 # Spalten, dann Zeilen
+..o-o
+..|..
+o-o-o
+
+3 2
+o-o..
+..|..
+o-o-o
