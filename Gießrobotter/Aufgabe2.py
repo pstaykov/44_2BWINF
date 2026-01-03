@@ -376,11 +376,17 @@ if __name__ == "__main__":
         print(f"\nProcessing {fname} (path: {fpath})")
         nodes, max_len = read_file(fpath)
         max_len = float(max_len)
-        print(f"max_len = {max_len}")
+        num_nodes = len(nodes)
+        print(f"max_len = {max_len}, num_nodes = {num_nodes}")
 
-        # Start with k=1 and increase until longest path < max_len
+        # Use interpolation-based search assuming linear relationship between k and max_distance
+        # Repeat until distance difference is 30 or less
         k = 1
+        previous_k = None
+        previous_distance = None
         found = False
+        max_k = num_nodes  # Can't have more clusters than nodes
+
         while not found:
             print(f"\n  Trying k = {k}...")
             centroids, clusters = k_means(nodes, k)
@@ -406,12 +412,13 @@ if __name__ == "__main__":
 
             # Find longest path
             max_distance = max(tour_distances) if tour_distances else 0
-            print(f"  Longest path distance: {max_distance:.2f}")
+            distance_diff = max_distance - max_len
+            print(f"  Longest path distance: {max_distance:.2f} (diff from max_len: {distance_diff:.2f})")
 
-            # Check if condition is met
-            if max_distance < max_len:
+            # Check if condition is met (distance within 30 units of max_len)
+            if max_distance <= max_len:
                 found = True
-                print(f"  ✓ Condition met! Longest path ({max_distance:.2f}) < max_len ({max_len})")
+                print(f"  ✓ Condition met! Longest path ({max_distance:.2f}) smaller than max_len ({max_len})")
 
                 # Visualize clusters with centroids
                 visualise_clusters_with_centroids(clusters, centroids, title=f'{fname} - Clusters (k={k})')
@@ -438,7 +445,47 @@ if __name__ == "__main__":
                 # Store result
                 results.append((fname, k, max_distance))
             else:
-                k += 1
+                # Store current state before calculating new k
+                current_k = k
+                current_distance = max_distance
+
+                # Use linear interpolation to estimate next k
+                if previous_k is not None and previous_distance is not None:
+                    # Assume linear relationship: distance = a * k + b
+                    # Calculate slope: (current_distance - previous_distance) / (current_k - previous_k)
+                    delta_distance = current_distance - previous_distance
+                    delta_k = current_k - previous_k
+
+                    if abs(delta_distance) > 0.01 and delta_k != 0:  # Avoid division by zero
+                        slope = delta_distance / delta_k  # negative slope (as k increases, distance decreases)
+
+                        # If slope is very small (near-flat), we're converging slowly
+                        # Use conservative increments instead of extrapolating
+                        if abs(slope) < 0.1:  # Very flat slope
+                            k = min(current_k + 10, max_k)  # Increment by 10, but don't exceed max_k
+                            print(f"  Slope very small ({slope:.4f}), using conservative increment: next k = {k}")
+                        else:
+                            # Solve for k where distance = max_len
+                            # max_len = current_distance + slope * (k - current_k)
+                            # k = current_k + (max_len - current_distance) / slope
+                            k_new = current_k + (max_len - current_distance) / slope
+                            # Bound the result and ensure we increment by at least 1
+                            k_bounded = max(current_k + 1, int(round(k_new)))
+                            k = min(k_bounded, max_k)  # Ensure we don't exceed max_k
+
+                            if k != k_bounded:
+                                print(f"  Linear interpolation: slope={slope:.4f}, k would be {k_bounded} but capped at {k}")
+                            else:
+                                print(f"  Linear interpolation: slope={slope:.4f}, next k = {k}")
+                    else:
+                        k = min(current_k + 1, max_k)
+                        print(f"  Distance change too small, incrementing k")
+                else:
+                    k = min(k + 1, max_k)
+
+                # Store current values as previous for next iteration
+                previous_k = current_k
+                previous_distance = current_distance
 
     # Save all k values to a text file
     output_file = os.path.join(base_dir, "k_values.txt")
