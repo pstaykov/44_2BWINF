@@ -5,9 +5,12 @@ import numpy as np
 import networkx as nx
 import math
 import os
+from scipy.spatial.distance import cdist
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+import multiprocessing as mp
 
-# use proper seeding call
 random.seed(42)
+np.random.seed(42)
 
 
 def read_file(path):
@@ -37,47 +40,31 @@ def plot_graph(nodes):
 
 
 def k_means(nodes, k, iter=100):
-    """Run k-means and return centroids and clusters where clusters contain tuples (id, x, y).
-
-    nodes: list of [id, x, y, ...]
-    """
-    # convert to tuples for numeric ops
-    pts = [(int(node[0]), float(node[1]), float(node[2])) for node in nodes]
-
-    # Initialize centroids randomly from existing points
-    centroids = random.sample([(p[1], p[2]) for p in pts], k)
-
-    clusters = []
-    for _ in range(iter):
-        clusters = [[] for _ in range(k)]
-
-        # Assign points to nearest centroid (vectorized)
+        """Run k-means with vectorized operations for better performance."""
+        pts = [(int(node[0]), float(node[1]), float(node[2])) for node in nodes]
         pts_array = np.array([(p[1], p[2]) for p in pts])
-        centroids_array = np.array(centroids)
 
-        for idx, p in enumerate(pts):
-            # Use squared distance (avoids sqrt for faster computation)
-            distances = np.sum((pts_array[idx:idx + 1] - centroids_array) ** 2, axis=1)
-            nearest_centroid = int(np.argmin(distances))
-            clusters[nearest_centroid].append(p)
+        # Initialize centroids randomly
+        centroid_indices = np.random.choice(len(pts), k, replace=False)
+        centroids = pts_array[centroid_indices].copy()
 
-        # Update centroids
-        new_centroids = []
-        for cluster in clusters:
-            if cluster:
-                new_centroid = (
-                    sum(pt[1] for pt in cluster) / len(cluster),
-                    sum(pt[2] for pt in cluster) / len(cluster)
-                )
-                new_centroids.append(new_centroid)
-            else:
-                new_centroids.append(random.choice([(p[1], p[2]) for p in pts]))
+        for _ in range(iter):
+            # Vectorized distance calculation
+            distances = np.linalg.norm(pts_array[:, np.newaxis, :] - centroids[np.newaxis, :, :], axis=2)
+            assignments = np.argmin(distances, axis=1)
 
-        if new_centroids == centroids:
-            break
-        centroids = new_centroids
+            # Update centroids
+            new_centroids = np.array([pts_array[assignments == j].mean(axis=0) if np.any(assignments == j)
+                                       else pts_array[np.random.choice(len(pts_array))] for j in range(k)])
 
-    return centroids, clusters
+            if np.allclose(centroids, new_centroids):
+                break
+            centroids = new_centroids
+
+        # Reformat clusters as before
+        clusters = [[(pts[i][0], pts[i][1], pts[i][2]) for i in range(len(pts)) if assignments[i] == j]
+                     for j in range(k)]
+        return centroids.tolist(), [c for c in clusters if c]
 
 
 def plot_graph_with_clusters(nodes, centroids, clusters):
@@ -130,23 +117,36 @@ def nearest_neighbor(nodes):
 
 
 def nearest_neighbor_from_tuples(pts):
-    """Nearest neighbor heuristic for pts list of (id,x,y) tuples."""
-    if not pts:
-        return []
-    unvisited = set(range(len(pts)))  # Use indices instead of removing from list
-    start_idx = 0
-    path = [pts[start_idx]]
-    unvisited.remove(start_idx)
+    """Optimized nearest neighbor using scipy."""
+    if len(pts) <= 1:
+        return [(p[0], (p[1], p[2])) for p in pts]
+
+    # Convert to list of coordinates for easier indexing
+    coords = np.array([(p[1], p[2]) for p in pts], dtype=np.float64)
+    unvisited = set(range(len(pts)))
+    path = [pts[0]]
+    unvisited.remove(0)
 
     while unvisited:
-        last = path[-1]
-        # Find unvisited point with minimum distance
-        next_idx = min(unvisited, key=lambda idx: euclidean_distance((last[1], last[2]), (pts[idx][1], pts[idx][2])))
-        path.append(pts[next_idx])
-        unvisited.remove(next_idx)
+        # Get last coordinate as 2D array (1, 2)
+        last_point = path[-1]
+        last_coord = np.array([[last_point[1], last_point[2]]], dtype=np.float64)
+
+        # Get unvisited coordinates
+        unvisited_indices = np.array(list(unvisited), dtype=np.int64)
+        unvisited_coords = coords[unvisited_indices]
+
+        # Calculate distances
+        distances = cdist(last_coord, unvisited_coords)[0]
+
+        # Find nearest
+        nearest_idx = np.argmin(distances)
+        next_global_idx = unvisited_indices[nearest_idx]
+
+        path.append(pts[next_global_idx])
+        unvisited.remove(next_global_idx)
 
     return [(p[0], (p[1], p[2])) for p in path]
-
 
 def visualise_path(path):
     """Visualise a single path given as a list of (id, (x, y)) using networkx and seaborn.
@@ -233,47 +233,94 @@ def visualise_all_paths(paths, title='Cluster-local tours', save_path=None):
     plt.show()
 
 
+def visualise_clusters_with_centroids(clusters, centroids, title='Clusters with Centroids'):
+    """Visualise clusters with their centroids.
+
+    clusters: list of clusters, where each cluster contains tuples (id, x, y)
+    centroids: list of centroid coordinates (x, y)
+    """
+    if not clusters:
+        print("No clusters to visualise")
+        return
+
+    colors = sns.color_palette("hsv", len(clusters))
+
+    # Plot each cluster with a different color
+    for idx, cluster in enumerate(clusters):
+        if len(cluster) == 0:
+            continue
+        x = [point[1] for point in cluster]
+        y = [point[2] for point in cluster]
+        plt.scatter(x, y, color=colors[idx], label=f'Cluster {idx + 1}', s=50)
+
+    # Plot centroids
+    if centroids:
+        centroid_x = [centroid[0] for centroid in centroids]
+        centroid_y = [centroid[1] for centroid in centroids]
+        plt.scatter(centroid_x, centroid_y, color='black', marker='X', s=200,
+                   edgecolors='red', linewidths=2, label='Centroids', zorder=5)
+
+    plt.xlabel('X Coordinate')
+    plt.ylabel('Y Coordinate')
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
 def calculate_total_distance(path):
-    total_distance = 0.0
-    for i in range(len(path) - 1):
-        total_distance += euclidean_distance(path[i][1], path[i + 1][1])
-    return total_distance
+    """Vectorized distance calculation."""
+    if len(path) <= 1:
+        return 0.0
+    coords = np.array([p[1] for p in path])
+    diffs = np.diff(coords, axis=0)
+    distances = np.linalg.norm(diffs, axis=1)
+    return np.sum(distances)
 
 
 def opt(path):
-    """Improve the given path using the 2-opt algorithm."""
+    """Improve the given path using the 2-opt algorithm with vectorized operations."""
     if len(path) <= 3:
         return path
 
-    # Pre-calculate all pairwise distances
     n = len(path)
-    distances = [[0.0] * n for _ in range(n)]
-    for i in range(n):
-        for j in range(i + 1, n):
-            dist = euclidean_distance(path[i][1], path[j][1])
-            distances[i][j] = dist
-            distances[j][i] = dist
+
+    # Skip 2-opt for very large clusters to save computation time
+    if n > 500:
+        return path
+
+    # Pre-calculate all pairwise distances using scipy
+    coords = np.array([p[1] for p in path])
+    distances = cdist(coords, coords)
 
     # Calculate initial tour distance
-    def tour_distance(path_indices):
+    def tour_distance(order):
         total = 0.0
-        for i in range(len(path_indices) - 1):
-            total += distances[path_indices[i]][path_indices[i + 1]]
+        for i in range(len(order) - 1):
+            total += distances[order[i]][order[i + 1]]
         return total
 
     improved = True
-    best_order = list(range(n))  # Track order instead of reordering path
+    best_order = list(range(n))
     best_distance = tour_distance(best_order)
 
-    while improved:
+    # 2-opt with early termination for large paths
+    max_iterations = min(100, n)
+    iterations = 0
+
+    while improved and iterations < max_iterations:
         improved = False
+        iterations += 1
+
+        # Vectorized distance comparisons
         for i in range(1, n - 1):
             for j in range(i + 1, n):
                 # Calculate change in distance for 2-opt swap
-                old_dist = (distances[best_order[i - 1]][best_order[i]] +
-                            distances[best_order[j]][best_order[(j + 1) % n]])
-                new_dist = (distances[best_order[i - 1]][best_order[j]] +
-                            distances[best_order[i]][best_order[(j + 1) % n]])
+                a, b = best_order[i - 1], best_order[i]
+                c, d = best_order[j], best_order[(j + 1) % n]
+
+                old_dist = distances[a][b] + distances[c][d]
+                new_dist = distances[a][c] + distances[b][d]
 
                 if new_dist < old_dist:
                     # Reverse the segment between i and j
@@ -281,11 +328,25 @@ def opt(path):
                     best_distance = tour_distance(best_order)
                     improved = True
                     break
+
             if improved:
                 break
 
     # Reorder path according to best_order
     return [path[i] for i in best_order]
+
+
+def process_single_cluster(cluster):
+    """Process a single cluster: compute NN tour and apply 2-opt improvement.
+    This function is designed to run in parallel."""
+    if len(cluster) == 0:
+        return None, None
+
+    tour = nearest_neighbor_from_tuples(cluster)
+    improved = opt(tour)
+    dist = calculate_total_distance(improved)
+
+    return tour, improved
 
 
 if __name__ == "__main__":
@@ -296,7 +357,11 @@ if __name__ == "__main__":
     # Store results for all robots
     results = []
 
-    for i in range(1, 12):
+    # Determine number of worker processes
+    num_workers = max(1, mp.cpu_count() - 1)
+    print(f"Using {num_workers} worker processes for parallel computation")
+
+    for i in range(8, 12):
         fname = f"roboter{i:02d}.txt"
         fpath = None
         for d in candidate_dirs:
@@ -320,17 +385,18 @@ if __name__ == "__main__":
             print(f"\n  Trying k = {k}...")
             centroids, clusters = k_means(nodes, k)
 
-            # For each cluster compute a local tour (nearest neighbour) and then 2-opt improve it
+            # Process clusters in parallel using ThreadPoolExecutor (better for I/O-bound tasks)
+            # Use ProcessPoolExecutor for CPU-intensive 2-opt on very large clusters
             cluster_tours = []
             improved_tours = []
-            for cluster in clusters:
-                if len(cluster) == 0:
-                    continue
-                # nearest_neighbor_from_tuples expects list of (id,x,y)
-                tour = nearest_neighbor_from_tuples(cluster)
-                improved = opt(tour)
-                cluster_tours.append(tour)
-                improved_tours.append(improved)
+
+            # Use ThreadPoolExecutor for parallel processing of clusters
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                results_iter = executor.map(process_single_cluster, clusters)
+                for tour, improved in results_iter:
+                    if tour is not None:
+                        cluster_tours.append(tour)
+                        improved_tours.append(improved)
 
             # Calculate distances
             tour_distances = []
@@ -347,14 +413,17 @@ if __name__ == "__main__":
                 found = True
                 print(f"  ✓ Condition met! Longest path ({max_distance:.2f}) < max_len ({max_len})")
 
-                # Save images only when condition is met
-                before_path = os.path.join(base_dir, f"{os.path.splitext(fname)[0]}_cluster_tours_before.png")
-                visualise_all_paths(cluster_tours, title=f'{fname} - Cluster-local NN tours (k={k})',
-                                    save_path=before_path)
+                # Visualize clusters with centroids
+                visualise_clusters_with_centroids(clusters, centroids, title=f'{fname} - Clusters (k={k})')
 
-                after_path = os.path.join(base_dir, f"{os.path.splitext(fname)[0]}_cluster_tours_after_2opt.png")
-                visualise_all_paths(improved_tours, title=f'{fname} - Cluster-local improved (2-opt) tours (k={k})',
-                                    save_path=after_path)
+                # Save images only when condition is met
+                # before_path = os.path.join(base_dir, f"{os.path.splitext(fname)[0]}_cluster_tours_before.png")
+                visualise_all_paths(cluster_tours, title=f'{fname} - Cluster-local NN tours (k={k})')
+                                    # save_path=before_path)
+
+                # after_path = os.path.join(base_dir, f"{os.path.splitext(fname)[0]}_cluster_tours_after_2opt.png")
+                visualise_all_paths(improved_tours, title=f'{fname} - Cluster-local improved (2-opt) tours (k={k})')
+                                    # save_path=after_path)
 
                 # Print cluster distances
                 print("  distance before improvement:")
