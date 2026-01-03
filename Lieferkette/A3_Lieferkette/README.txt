@@ -45,7 +45,7 @@ Hier das Beispiel lieferung00.txt:
 3 1
 4 2
 5 2
-9
+nStreets 9
 S 1 1
 S 2 4
 S 3 3
