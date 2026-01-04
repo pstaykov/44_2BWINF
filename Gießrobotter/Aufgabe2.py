@@ -1,13 +1,11 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
 import random
 import numpy as np
-import networkx as nx
 import math
 import os
 from scipy.spatial.distance import cdist
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing as mp
+from Gießrobotter.visualisation import visualise_all_paths, visualise_clusters_with_centroids
 
 random.seed(42)
 np.random.seed(42)
@@ -91,91 +89,6 @@ def nearest_neighbor_from_tuples(pts):
         unvisited.remove(next_global_idx)
 
     return [(p[0], (p[1], p[2])) for p in path]
-
-
-def visualise_all_paths(paths, title='Cluster-local tours', save_path=None):
-    """Visualise multiple paths (one per cluster) in a single plot with different colors.
-
-    paths: list of paths, where each path is list of (id, (x,y)) tuples
-    save_path: optional file path to save the resulting image (PNG)
-    """
-    if not paths:
-        print("No paths to visualise")
-        return
-
-    # Collect positions and nodes
-    pos = {}
-    for path in paths:
-        for node in path:
-            nid = str(node[0])
-            if nid not in pos:
-                pos[nid] = (node[1][0], node[1][1])
-
-    # Build combined graph (nodes only needed, edges drawn per path)
-    G = nx.Graph()
-    G.add_nodes_from(pos.keys())
-
-    sns.set_theme(style="white")
-    colors = sns.color_palette("deep", len(paths))
-
-    plt.figure()
-    # draw nodes
-    nx.draw_networkx_nodes(G, pos, node_color='lightgray', node_size=300)
-    nx.draw_networkx_labels(G, pos, font_size=8)
-
-    # draw edges per path with a different color
-    for idx, path in enumerate(paths):
-        node_labels = [str(n[0]) for n in path]
-        edges = [(node_labels[i], node_labels[i + 1]) for i in range(len(node_labels) - 1)]
-        nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=[colors[idx]], width=2.5, alpha=0.9)
-
-    plt.title(title)
-    plt.axis('off')
-
-    # Save the figure if requested
-    if save_path:
-        try:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
-            print(f"Saved visualisation to: {save_path}")
-        except Exception as e:
-            print(f"Failed to save image to {save_path}: {e}")
-
-    plt.show()
-
-
-def visualise_clusters_with_centroids(clusters, centroids, title='Clusters with Centroids'):
-    """Visualise clusters with their centroids.
-
-    clusters: list of clusters, where each cluster contains tuples (id, x, y)
-    centroids: list of centroid coordinates (x, y)
-    """
-    if not clusters:
-        print("No clusters to visualise")
-        return
-
-    colors = sns.color_palette("hsv", len(clusters))
-
-    # Plot each cluster with a different color
-    for idx, cluster in enumerate(clusters):
-        if len(cluster) == 0:
-            continue
-        x = [point[1] for point in cluster]
-        y = [point[2] for point in cluster]
-        plt.scatter(x, y, color=colors[idx], label=f'Cluster {idx + 1}', s=50)
-
-    # Plot centroids
-    if centroids:
-        centroid_x = [centroid[0] for centroid in centroids]
-        centroid_y = [centroid[1] for centroid in centroids]
-        plt.scatter(centroid_x, centroid_y, color='black', marker='X', s=200,
-                   edgecolors='red', linewidths=2, label='Centroids', zorder=5)
-
-    plt.xlabel('X Coordinate')
-    plt.ylabel('Y Coordinate')
-    plt.title(title)
-    plt.legend()
-    plt.grid(True)
-    plt.show()
 
 
 def calculate_total_distance(path):
@@ -279,6 +192,170 @@ def evaluate_k(nodes, k, num_workers):
     return max_distance, centroids, clusters, cluster_tours, improved_tours
 
 
+def find_min_k(nodes, max_len, num_nodes, num_workers):
+    """Find the minimal k such that the longest cluster tour distance is within max_len.
+
+    Uses an adaptive approach: starts with k = 1, increases k until the condition is met,
+    then performs a binary search to find the minimal k.
+    """
+    # Use interpolation-based search assuming linear relationship between k and max_distance
+    k = 1
+    previous_k = None
+    previous_distance = None
+    # current k that satisfies the constraint (d(k) <= max_len) when found
+    k_current = None
+    found = False
+    max_k = num_nodes  # Can't have more clusters than nodes
+
+    # Keep track of tested k values and cache computed distances to avoid recomputation
+    tested_ks = []
+    computed = {}  # k -> (max_distance, centroids, clusters, cluster_tours, improved_tours)
+
+    while not found:
+        # Record tested k
+        if k in tested_ks:
+            # Avoid infinite loops when interpolation suggests same k
+            k = min(k + 1, max_k)
+        tested_ks.append(k)
+
+        print(f"\n  Trying k = {k}...")
+
+        # Evaluate k (use cache when possible)
+        if k in computed:
+            max_distance, centroids, clusters, cluster_tours, improved_tours = computed[k]
+        else:
+            max_distance, centroids, clusters, cluster_tours, improved_tours = evaluate_k(nodes, k, num_workers)
+            computed[k] = (max_distance, centroids, clusters, cluster_tours, improved_tours)
+
+        distance_diff = max_distance - max_len
+        print(f"  Longest path distance: {max_distance:.2f} (diff from max_len: {distance_diff:.2f})")
+
+        # Check if condition is met
+        if max_distance <= max_len:
+            found = True
+            print(f"  ✓ Condition met for k = {k}: longest path ({max_distance:.2f}) <= max_len ({max_len})")
+            k_current = k
+            # Do not visualise yet; perform binary search to find minimal k
+            break
+        else:
+            # Store current state before calculating new k
+            current_k = k
+            current_distance = max_distance
+
+            # Use linear interpolation to estimate next k
+            if previous_k is not None and previous_distance is not None:
+                delta_distance = current_distance - previous_distance
+                delta_k = current_k - previous_k
+
+                if abs(delta_distance) > 0.01 and delta_k != 0:
+                    slope = delta_distance / delta_k
+
+                    # If slope is non-negative or very small, use conservative increment
+                    if slope >= 0 or abs(slope) < 0.1:
+                        k = min(current_k + 10, max_k)
+                        print(f"  Slope {slope:.4f} not suitable for extrapolation, using conservative increment: next k = {k}")
+                    else:
+                        # Solve for k where distance = max_len: max_len = current_distance + slope * (k - current_k)
+                        k_new = current_k + (max_len - current_distance) / slope
+                        # Round up to be safe (we need k such that distance <= max_len)
+                        k_bounded = max(current_k + 1, int(math.ceil(k_new)))
+                        k = min(k_bounded, max_k)
+
+                        if k != k_bounded:
+                            print(f"  Linear interpolation: slope={slope:.4f}, k would be {k_bounded} but capped at {k}")
+                        else:
+                            print(f"  Linear interpolation: slope={slope:.4f}, next k = {k}")
+                else:
+                    k = min(current_k + 1, max_k)
+                    print(f"  Distance change too small, incrementing k to {k}")
+            else:
+                k = min(k + 1, max_k)
+
+            # Store current values as previous for next iteration
+            previous_k = current_k
+            previous_distance = current_distance
+
+        # Stop if we've reached max_k
+        if k >= max_k:
+            # Evaluate the final k if not already
+            if k not in computed:
+                computed[k] = evaluate_k(nodes, k, num_workers)
+            # If still not satisfying, accept k = max_k
+            max_distance = computed[k][0]
+            if max_distance > max_len:
+                print(f"  Reached k = max_k ({max_k}) but condition still not met (distance={max_distance:.2f}), accepting max_k")
+            k_current = k
+            found = True
+            break
+
+    # At this point k_current is a k such that d(k_current) <= max_len (or we've capped at max_k).
+    # Now run the binary search to find the minimal k* in [k_start, k_current].
+
+    # Fallback: ensure k_current is defined (static analyzers may not infer it's always set)
+    if k_current is None:
+        k_current = max(tested_ks) if tested_ks else max_k
+
+    # Determine the largest already-tested k strictly less than k_current
+    tested_less = [t for t in tested_ks if t < k_current]
+    max_tested_less = max(tested_less) if tested_less else 0
+
+    # Find biggest fraction of form 1/2^i such that k_start = floor(k_current * (1 - 1/2^i)) > max_tested_less
+    k_start = max_tested_less + 1
+    # Try increasing i until the k_start would be <= max_tested_less, then use previous
+    i = 1
+    last_valid = k_start
+    while True:
+        candidate = int(math.floor(k_current * (1 - 1 / (2 ** i))))
+        if candidate <= max_tested_less or candidate < 1:
+            break
+        last_valid = candidate
+        i += 1
+    k_start = max(1, last_valid)
+
+    # Ensure interval is valid
+    if k_start >= k_current:
+        k_start = max(1, k_current - 1)
+
+    print(f"  Binary search interval: [{k_start}, {k_current}] (tested_ks: {sorted(set(tested_ks))})")
+
+    # Binary search for minimal k
+    low = k_start
+    high = k_current
+
+    best_k = k_current
+
+    while low <= high:
+        mid = (low + high) // 2
+        if mid in computed and len(computed[mid]) == 5:
+            mid_distance = computed[mid][0]
+        else:
+            # Capture all returned values to avoid NoneType errors later
+            mid_res = evaluate_k(nodes, mid, num_workers)
+            computed[mid] = mid_res
+            mid_distance = mid_res[0]
+
+        print(f"    Binary search testing k={mid} -> d={mid_distance:.2f}")
+
+        if mid_distance <= max_len:
+            best_k = mid
+            high = mid - 1
+        else:
+            low = mid + 1
+
+    # Best_k is minimal k* such that d(k*) <= max_len
+    print(f"  Found minimal k* = {best_k} (d={computed[best_k][0]:.2f})")
+
+    # Get artifacts for best_k (compute if missing)
+    if best_k in computed and len(computed[best_k]) == 5:
+        _, centroids, clusters, cluster_tours, improved_tours = computed[best_k]
+        max_distance = computed[best_k][0]
+    else:
+        max_distance, centroids, clusters, cluster_tours, improved_tours = evaluate_k(nodes, best_k, num_workers)
+        computed[best_k] = (max_distance, centroids, clusters, cluster_tours, improved_tours)
+
+    return best_k, max_distance, centroids, clusters, cluster_tours, improved_tours
+
+
 if __name__ == "__main__":
     # Process all robot files roboter01.txt .. roboter11.txt and save before/after images
     base_dir = os.path.dirname(__file__)
@@ -309,158 +386,8 @@ if __name__ == "__main__":
         num_nodes = len(nodes)
         print(f"max_len = {max_len}, num_nodes = {num_nodes}")
 
-        # Use interpolation-based search assuming linear relationship between k and max_distance
-        k = 1
-        previous_k = None
-        previous_distance = None
-        found = False
-        max_k = num_nodes  # Can't have more clusters than nodes
-
-        # Keep track of tested k values and cache computed distances to avoid recomputation
-        tested_ks = []
-        computed = {}  # k -> (max_distance, centroids, clusters, cluster_tours, improved_tours)
-
-        while not found:
-            # Record tested k
-            if k in tested_ks:
-                # Avoid infinite loops when interpolation suggests same k
-                k = min(k + 1, max_k)
-            tested_ks.append(k)
-
-            print(f"\n  Trying k = {k}...")
-
-            # Evaluate k (use cache when possible)
-            if k in computed:
-                max_distance, centroids, clusters, cluster_tours, improved_tours = computed[k]
-            else:
-                max_distance, centroids, clusters, cluster_tours, improved_tours = evaluate_k(nodes, k, num_workers)
-                computed[k] = (max_distance, centroids, clusters, cluster_tours, improved_tours)
-
-            distance_diff = max_distance - max_len
-            print(f"  Longest path distance: {max_distance:.2f} (diff from max_len: {distance_diff:.2f})")
-
-            # Check if condition is met
-            if max_distance <= max_len:
-                found = True
-                print(f"  Condition met for k = {k}: longest path ({max_distance:.2f}) <= max_len ({max_len})")
-                k_current = k
-                # Do not visualise yet; perform binary search to find minimal k
-                break
-            else:
-                # Store current state before calculating new k
-                current_k = k
-                current_distance = max_distance
-
-                # Use linear interpolation to estimate next k
-                if previous_k is not None and previous_distance is not None:
-                    delta_distance = current_distance - previous_distance
-                    delta_k = current_k - previous_k
-
-                    if abs(delta_distance) > 0.01 and delta_k != 0:
-                        slope = delta_distance / delta_k
-
-                        # If slope is non-negative or very small, use conservative increment
-                        if slope >= 0 or abs(slope) < 0.1:
-                            k = min(current_k + 10, max_k)
-                            print(f"  Slope {slope:.4f} not suitable for extrapolation, using conservative increment: next k = {k}")
-                        else:
-                            # Solve for k where distance = max_len: max_len = current_distance + slope * (k - current_k)
-                            k_new = current_k + (max_len - current_distance) / slope
-                            # Round up to be safe (we need k such that distance <= max_len)
-                            k_bounded = max(current_k + 1, int(math.ceil(k_new)))
-                            k = min(k_bounded, max_k)
-
-                            if k != k_bounded:
-                                print(f"  Linear interpolation: slope={slope:.4f}, k would be {k_bounded} but capped at {k}")
-                            else:
-                                print(f"  Linear interpolation: slope={slope:.4f}, next k = {k}")
-                    else:
-                        k = min(current_k + 1, max_k)
-                        print(f"  Distance change too small, incrementing k to {k}")
-                else:
-                    k = min(k + 1, max_k)
-
-                # Store current values as previous for next iteration
-                previous_k = current_k
-                previous_distance = current_distance
-
-            # Stop if we've reached max_k
-            if k >= max_k:
-                # Evaluate the final k if not already
-                if k not in computed:
-                    computed[k] = evaluate_k(nodes, k, num_workers)
-                # If still not satisfying, accept k = max_k
-                max_distance = computed[k][0]
-                if max_distance > max_len:
-                    print(f"  Reached k = max_k ({max_k}) but condition still not met (distance={max_distance:.2f}), accepting max_k")
-                k_current = k
-                found = True
-                break
-
-        # At this point k_current is a k such that d(k_current) <= max_len (or we've capped at max_k).
-        # Now run the binary search to find the minimal k* in [k_start, k_current].
-
-        # Fallback: ensure k_current is defined (static analyzers may not infer it's always set)
-        if k_current is None:
-            k_current = max(tested_ks) if tested_ks else max_k
-
-        # Determine the largest already-tested k strictly less than k_current
-        tested_less = [t for t in tested_ks if t < k_current]
-        max_tested_less = max(tested_less) if tested_less else 0
-
-        # Find biggest fraction of form 1/2^i such that k_start = floor(k_current * (1 - 1/2^i)) > max_tested_less
-        k_start = max_tested_less + 1
-        # Try increasing i until the k_start would be <= max_tested_less, then use previous
-        i = 1
-        last_valid = k_start
-        while True:
-            candidate = int(math.floor(k_current * (1 - 1 / (2 ** i))))
-            if candidate <= max_tested_less or candidate < 1:
-                break
-            last_valid = candidate
-            i += 1
-        k_start = max(1, last_valid)
-
-        # Ensure interval is valid
-        if k_start >= k_current:
-            k_start = max(1, k_current - 1)
-
-        print(f"  Binary search interval: [{k_start}, {k_current}] (tested_ks: {sorted(set(tested_ks))})")
-
-        # Binary search for minimal k
-        low = k_start
-        high = k_current
-
-        best_k = k_current
-
-        while low <= high:
-            mid = (low + high) // 2
-            if mid in computed and len(computed[mid]) == 5:
-                mid_distance = computed[mid][0]
-            else:
-                # Capture all returned values to avoid NoneType errors later
-                mid_res = evaluate_k(nodes, mid, num_workers)
-                computed[mid] = mid_res
-                mid_distance = mid_res[0]
-
-            print(f"    Binary search testing k={mid} -> d={mid_distance:.2f}")
-
-            if mid_distance <= max_len:
-                best_k = mid
-                high = mid - 1
-            else:
-                low = mid + 1
-
-        # Best_k is minimal k* such that d(k*) <= max_len
-        print(f"  Found minimal k* = {best_k} (d={computed[best_k][0]:.2f})")
-
-        # Get artifacts for best_k (compute if missing)
-        if best_k in computed and len(computed[best_k]) == 5:
-            _, centroids, clusters, cluster_tours, improved_tours = computed[best_k]
-            max_distance = computed[best_k][0]
-        else:
-            max_distance, centroids, clusters, cluster_tours, improved_tours = evaluate_k(nodes, best_k, num_workers)
-            computed[best_k] = (max_distance, centroids, clusters, cluster_tours, improved_tours)
+        # Delegate finding minimal k to helper to keep main loop compact
+        best_k, max_distance, centroids, clusters, cluster_tours, improved_tours = find_min_k(nodes, max_len, num_nodes, num_workers)
 
         # Visualise and store result for the minimal k*
         visualise_clusters_with_centroids(clusters, centroids, title=f'{fname} - Clusters (k={best_k})')
