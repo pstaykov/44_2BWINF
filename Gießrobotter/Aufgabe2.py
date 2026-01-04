@@ -290,8 +290,8 @@ def interpolation_search_phase(nodes, max_len, num_nodes, num_workers, computed)
         # Calculate next k using linear interpolation
         next_k, description = calculate_next_k_linear(k, max_distance, previous_k, previous_distance, max_len, max_k)
         print(f"  {description}")
-        k = next_k
         previous_k = k
+        k = next_k
         previous_distance = max_distance
 
         # Stop if we've reached max_k

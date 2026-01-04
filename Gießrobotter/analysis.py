@@ -21,7 +21,9 @@ def analyze_roboter(file_path, output_json):
     """
     # Load nodes from the file
     with open(file_path, 'r') as f:
-        nodes = [tuple(map(float, line.strip().split())) for line in f]
+        lines = f.readlines()
+        # Skip the first two lines (max_len and num_nodes metadata)
+        nodes = [tuple(map(float, line.strip().split())) for line in lines[2:]]
 
     num_nodes = len(nodes)
     max_len = float('inf')  # No constraint on max length for this analysis
