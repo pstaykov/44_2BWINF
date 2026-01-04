@@ -6,7 +6,7 @@ import networkx as nx
 import math
 import os
 from scipy.spatial.distance import cdist
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 import multiprocessing as mp
 
 random.seed(42)
@@ -23,31 +23,24 @@ def read_file(path):
     return nodes, max_len
 
 
-def plot_graph(nodes):
-    x = [float(node[1]) for node in nodes]
-    y = [float(node[2]) for node in nodes]
-
-    plt.scatter(x, y)
-
-    for node in nodes:
-        plt.text(float(node[1]), float(node[2]), node[0])
-
-    plt.xlabel('X Coordinate')
-    plt.ylabel('Y Coordinate')
-    plt.title('Graph Nodes')
-    plt.grid(True)
-    plt.show()
-
-
-def k_means(nodes, k, iter=100):
+def k_means(nodes, k, iter=50):
         """Run k-means with vectorized operations for better performance."""
         pts = [(int(node[0]), float(node[1]), float(node[2])) for node in nodes]
+        if len(pts) == 0:
+            return [], []
+        # Ensure k is within sensible bounds
+        if k <= 0:
+            k = 1
+        if k > len(pts):
+            k = len(pts)
         pts_array = np.array([(p[1], p[2]) for p in pts])
 
         # Initialize centroids randomly
         centroid_indices = np.random.choice(len(pts), k, replace=False)
         centroids = pts_array[centroid_indices].copy()
 
+        # initialize assignments for static analyzers; will be overwritten in loop
+        assignments = np.zeros(len(pts), dtype=int)
         for _ in range(iter):
             # Vectorized distance calculation
             distances = np.linalg.norm(pts_array[:, np.newaxis, :] - centroids[np.newaxis, :, :], axis=2)
@@ -65,55 +58,6 @@ def k_means(nodes, k, iter=100):
         clusters = [[(pts[i][0], pts[i][1], pts[i][2]) for i in range(len(pts)) if assignments[i] == j]
                      for j in range(k)]
         return centroids.tolist(), [c for c in clusters if c]
-
-
-def plot_graph_with_clusters(nodes, centroids, clusters):
-    colors = sns.color_palette("hsv", max(1, len(clusters)))
-
-    for idx, cluster in enumerate(clusters):
-        # cluster contains tuples (id, x, y)
-        x = [point[1] for point in cluster]
-        y = [point[2] for point in cluster]
-        plt.scatter(x, y, color=colors[idx], label=f'Cluster {idx + 1}')
-
-    # Plot centroids
-    centroid_x = [centroid[0] for centroid in centroids]
-    centroid_y = [centroid[1] for centroid in centroids]
-    plt.scatter(centroid_x, centroid_y, color='black', marker='X', s=100, label='Centroids')
-
-    plt.xlabel('X Coordinate')
-    plt.ylabel('Y Coordinate')
-    plt.title('Graph Nodes with Clusters')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-
-def euclidean_distance(point1, point2):
-    return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
-
-
-def nearest_neighbor(nodes):
-    # Convert nodes to a list of tuples: (id:int, x:float, y:float)
-    pts = [(int(node[0]), float(node[1]), float(node[2])) for node in nodes]
-
-    if not pts:
-        return []
-
-    unvisited = set(range(len(pts)))
-    start_idx = 0
-    path = [pts[start_idx]]
-    unvisited.remove(start_idx)
-
-    while unvisited:
-        last = path[-1]
-        # choose the unvisited point with minimum euclidean distance to last
-        next_idx = min(unvisited, key=lambda idx: euclidean_distance((last[1], last[2]), (pts[idx][1], pts[idx][2])))
-        path.append(pts[next_idx])
-        unvisited.remove(next_idx)
-
-    # return list of (id, (x, y)) tuples
-    return [(p[0], (p[1], p[2])) for p in path]
 
 
 def nearest_neighbor_from_tuples(pts):
@@ -141,46 +85,12 @@ def nearest_neighbor_from_tuples(pts):
 
         # Find nearest
         nearest_idx = np.argmin(distances)
-        next_global_idx = unvisited_indices[nearest_idx]
+        next_global_idx = int(unvisited_indices[nearest_idx])
 
         path.append(pts[next_global_idx])
         unvisited.remove(next_global_idx)
 
     return [(p[0], (p[1], p[2])) for p in path]
-
-def visualise_path(path):
-    """Visualise a single path given as a list of (id, (x, y)) using networkx and seaborn.
-    Kept for backward compatibility.
-    """
-    if not path:
-        print("Empty path, nothing to visualise")
-        return
-
-    G = nx.Graph()
-
-    # nodes as strings (labels)
-    node_labels = [str(n[0]) for n in path]
-    # edges between consecutive nodes
-    edges = [(node_labels[i], node_labels[i + 1]) for i in range(len(node_labels) - 1)]
-
-    G.add_nodes_from(node_labels)
-    G.add_edges_from(edges)
-
-    # position mapping from node label to coordinate
-    pos = {str(n[0]): (n[1][0], n[1][1]) for n in path}
-
-    sns.set_theme(style="white")
-
-    nx.draw(
-        G, pos,
-        with_labels=True,
-        node_color=[sns.color_palette("deep")[0]] * len(node_labels),
-        node_size=800,
-        edge_color="gray"
-    )
-
-    plt.title('Nearest Neighbor Path')
-    plt.show()
 
 
 def visualise_all_paths(paths, title='Cluster-local tours', save_path=None):
@@ -279,15 +189,11 @@ def calculate_total_distance(path):
 
 
 def opt(path):
-    """Improve the given path using the 2-opt algorithm with vectorized operations."""
+    """2opt algorithm to improve a path by swapping edges."""
     if len(path) <= 3:
         return path
 
     n = len(path)
-
-    # Skip 2-opt for very large clusters to save computation time
-    if n > 500:
-        return path
 
     # Pre-calculate all pairwise distances using scipy
     coords = np.array([p[1] for p in path])
@@ -349,6 +255,30 @@ def process_single_cluster(cluster):
     return tour, improved
 
 
+def evaluate_k(nodes, k, num_workers):
+    """Run k-means for given k, process clusters (parallel), and return (max_distance, centroids, clusters, cluster_tours, improved_tours).
+
+    Results are returned so callers can visualise the final chosen solution. Only the max_distance is used for decisions.
+    """
+    centroids, clusters = k_means(nodes, k)
+
+    cluster_tours = []
+    improved_tours = []
+
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        results_iter = executor.map(process_single_cluster, clusters)
+        for tour, improved in results_iter:
+            if tour is not None:
+                cluster_tours.append(tour)
+                improved_tours.append(improved)
+
+    # Compute distances for improved tours
+    tour_distances = [calculate_total_distance(t) for t in improved_tours]
+    max_distance = max(tour_distances) if tour_distances else 0.0
+
+    return max_distance, centroids, clusters, cluster_tours, improved_tours
+
+
 if __name__ == "__main__":
     # Process all robot files roboter01.txt .. roboter11.txt and save before/after images
     base_dir = os.path.dirname(__file__)
@@ -361,7 +291,7 @@ if __name__ == "__main__":
     num_workers = max(1, mp.cpu_count() - 1)
     print(f"Using {num_workers} worker processes for parallel computation")
 
-    for i in range(8, 12):
+    for i in range(1, 12):
         fname = f"roboter{i:02d}.txt"
         fpath = None
         for d in candidate_dirs:
@@ -380,70 +310,42 @@ if __name__ == "__main__":
         print(f"max_len = {max_len}, num_nodes = {num_nodes}")
 
         # Use interpolation-based search assuming linear relationship between k and max_distance
-        # Repeat until distance difference is 30 or less
         k = 1
         previous_k = None
         previous_distance = None
         found = False
         max_k = num_nodes  # Can't have more clusters than nodes
 
+        # Keep track of tested k values and cache computed distances to avoid recomputation
+        tested_ks = []
+        computed = {}  # k -> (max_distance, centroids, clusters, cluster_tours, improved_tours)
+
         while not found:
+            # Record tested k
+            if k in tested_ks:
+                # Avoid infinite loops when interpolation suggests same k
+                k = min(k + 1, max_k)
+            tested_ks.append(k)
+
             print(f"\n  Trying k = {k}...")
-            centroids, clusters = k_means(nodes, k)
 
-            # Process clusters in parallel using ThreadPoolExecutor (better for I/O-bound tasks)
-            # Use ProcessPoolExecutor for CPU-intensive 2-opt on very large clusters
-            cluster_tours = []
-            improved_tours = []
+            # Evaluate k (use cache when possible)
+            if k in computed:
+                max_distance, centroids, clusters, cluster_tours, improved_tours = computed[k]
+            else:
+                max_distance, centroids, clusters, cluster_tours, improved_tours = evaluate_k(nodes, k, num_workers)
+                computed[k] = (max_distance, centroids, clusters, cluster_tours, improved_tours)
 
-            # Use ThreadPoolExecutor for parallel processing of clusters
-            with ThreadPoolExecutor(max_workers=num_workers) as executor:
-                results_iter = executor.map(process_single_cluster, clusters)
-                for tour, improved in results_iter:
-                    if tour is not None:
-                        cluster_tours.append(tour)
-                        improved_tours.append(improved)
-
-            # Calculate distances
-            tour_distances = []
-            for tour in improved_tours:
-                dist = calculate_total_distance(tour)
-                tour_distances.append(dist)
-
-            # Find longest path
-            max_distance = max(tour_distances) if tour_distances else 0
             distance_diff = max_distance - max_len
             print(f"  Longest path distance: {max_distance:.2f} (diff from max_len: {distance_diff:.2f})")
 
-            # Check if condition is met (distance within 30 units of max_len)
+            # Check if condition is met
             if max_distance <= max_len:
                 found = True
-                print(f"  ✓ Condition met! Longest path ({max_distance:.2f}) smaller than max_len ({max_len})")
-
-                # Visualize clusters with centroids
-                visualise_clusters_with_centroids(clusters, centroids, title=f'{fname} - Clusters (k={k})')
-
-                # Save images only when condition is met
-                # before_path = os.path.join(base_dir, f"{os.path.splitext(fname)[0]}_cluster_tours_before.png")
-                visualise_all_paths(cluster_tours, title=f'{fname} - Cluster-local NN tours (k={k})')
-                                    # save_path=before_path)
-
-                # after_path = os.path.join(base_dir, f"{os.path.splitext(fname)[0]}_cluster_tours_after_2opt.png")
-                visualise_all_paths(improved_tours, title=f'{fname} - Cluster-local improved (2-opt) tours (k={k})')
-                                    # save_path=after_path)
-
-                # Print cluster distances
-                print("  distance before improvement:")
-                for idx, tour in enumerate(cluster_tours):
-                    dist = calculate_total_distance(tour)
-                    print(f"    Cluster {idx + 1}: {dist:.2f}")
-                print("  distance after improvement:")
-                for idx, tour in enumerate(improved_tours):
-                    dist = calculate_total_distance(tour)
-                    print(f"    Cluster {idx + 1}: {dist:.2f}")
-
-                # Store result
-                results.append((fname, k, max_distance))
+                print(f"  Condition met for k = {k}: longest path ({max_distance:.2f}) <= max_len ({max_len})")
+                k_current = k
+                # Do not visualise yet; perform binary search to find minimal k
+                break
             else:
                 # Store current state before calculating new k
                 current_k = k
@@ -451,27 +353,22 @@ if __name__ == "__main__":
 
                 # Use linear interpolation to estimate next k
                 if previous_k is not None and previous_distance is not None:
-                    # Assume linear relationship: distance = a * k + b
-                    # Calculate slope: (current_distance - previous_distance) / (current_k - previous_k)
                     delta_distance = current_distance - previous_distance
                     delta_k = current_k - previous_k
 
-                    if abs(delta_distance) > 0.01 and delta_k != 0:  # Avoid division by zero
-                        slope = delta_distance / delta_k  # negative slope (as k increases, distance decreases)
+                    if abs(delta_distance) > 0.01 and delta_k != 0:
+                        slope = delta_distance / delta_k
 
-                        # If slope is very small (near-flat), we're converging slowly
-                        # Use conservative increments instead of extrapolating
-                        if abs(slope) < 0.1:  # Very flat slope
-                            k = min(current_k + 10, max_k)  # Increment by 10, but don't exceed max_k
-                            print(f"  Slope very small ({slope:.4f}), using conservative increment: next k = {k}")
+                        # If slope is non-negative or very small, use conservative increment
+                        if slope >= 0 or abs(slope) < 0.1:
+                            k = min(current_k + 10, max_k)
+                            print(f"  Slope {slope:.4f} not suitable for extrapolation, using conservative increment: next k = {k}")
                         else:
-                            # Solve for k where distance = max_len
-                            # max_len = current_distance + slope * (k - current_k)
-                            # k = current_k + (max_len - current_distance) / slope
+                            # Solve for k where distance = max_len: max_len = current_distance + slope * (k - current_k)
                             k_new = current_k + (max_len - current_distance) / slope
-                            # Bound the result and ensure we increment by at least 1
-                            k_bounded = max(current_k + 1, int(round(k_new)))
-                            k = min(k_bounded, max_k)  # Ensure we don't exceed max_k
+                            # Round up to be safe (we need k such that distance <= max_len)
+                            k_bounded = max(current_k + 1, int(math.ceil(k_new)))
+                            k = min(k_bounded, max_k)
 
                             if k != k_bounded:
                                 print(f"  Linear interpolation: slope={slope:.4f}, k would be {k_bounded} but capped at {k}")
@@ -479,13 +376,108 @@ if __name__ == "__main__":
                                 print(f"  Linear interpolation: slope={slope:.4f}, next k = {k}")
                     else:
                         k = min(current_k + 1, max_k)
-                        print(f"  Distance change too small, incrementing k")
+                        print(f"  Distance change too small, incrementing k to {k}")
                 else:
                     k = min(k + 1, max_k)
 
                 # Store current values as previous for next iteration
                 previous_k = current_k
                 previous_distance = current_distance
+
+            # Stop if we've reached max_k
+            if k >= max_k:
+                # Evaluate the final k if not already
+                if k not in computed:
+                    computed[k] = evaluate_k(nodes, k, num_workers)
+                # If still not satisfying, accept k = max_k
+                max_distance = computed[k][0]
+                if max_distance > max_len:
+                    print(f"  Reached k = max_k ({max_k}) but condition still not met (distance={max_distance:.2f}), accepting max_k")
+                k_current = k
+                found = True
+                break
+
+        # At this point k_current is a k such that d(k_current) <= max_len (or we've capped at max_k).
+        # Now run the binary search to find the minimal k* in [k_start, k_current].
+
+        # Fallback: ensure k_current is defined (static analyzers may not infer it's always set)
+        if k_current is None:
+            k_current = max(tested_ks) if tested_ks else max_k
+
+        # Determine the largest already-tested k strictly less than k_current
+        tested_less = [t for t in tested_ks if t < k_current]
+        max_tested_less = max(tested_less) if tested_less else 0
+
+        # Find biggest fraction of form 1/2^i such that k_start = floor(k_current * (1 - 1/2^i)) > max_tested_less
+        k_start = max_tested_less + 1
+        # Try increasing i until the k_start would be <= max_tested_less, then use previous
+        i = 1
+        last_valid = k_start
+        while True:
+            candidate = int(math.floor(k_current * (1 - 1 / (2 ** i))))
+            if candidate <= max_tested_less or candidate < 1:
+                break
+            last_valid = candidate
+            i += 1
+        k_start = max(1, last_valid)
+
+        # Ensure interval is valid
+        if k_start >= k_current:
+            k_start = max(1, k_current - 1)
+
+        print(f"  Binary search interval: [{k_start}, {k_current}] (tested_ks: {sorted(set(tested_ks))})")
+
+        # Binary search for minimal k
+        low = k_start
+        high = k_current
+
+        best_k = k_current
+
+        while low <= high:
+            mid = (low + high) // 2
+            if mid in computed and len(computed[mid]) == 5:
+                mid_distance = computed[mid][0]
+            else:
+                # Capture all returned values to avoid NoneType errors later
+                mid_res = evaluate_k(nodes, mid, num_workers)
+                computed[mid] = mid_res
+                mid_distance = mid_res[0]
+
+            print(f"    Binary search testing k={mid} -> d={mid_distance:.2f}")
+
+            if mid_distance <= max_len:
+                best_k = mid
+                high = mid - 1
+            else:
+                low = mid + 1
+
+        # Best_k is minimal k* such that d(k*) <= max_len
+        print(f"  Found minimal k* = {best_k} (d={computed[best_k][0]:.2f})")
+
+        # Get artifacts for best_k (compute if missing)
+        if best_k in computed and len(computed[best_k]) == 5:
+            _, centroids, clusters, cluster_tours, improved_tours = computed[best_k]
+            max_distance = computed[best_k][0]
+        else:
+            max_distance, centroids, clusters, cluster_tours, improved_tours = evaluate_k(nodes, best_k, num_workers)
+            computed[best_k] = (max_distance, centroids, clusters, cluster_tours, improved_tours)
+
+        # Visualise and store result for the minimal k*
+        visualise_clusters_with_centroids(clusters, centroids, title=f'{fname} - Clusters (k={best_k})')
+        visualise_all_paths(cluster_tours, title=f'{fname} - Cluster-local NN tours (k={best_k})')
+        visualise_all_paths(improved_tours, title=f'{fname} - Cluster-local improved (2-opt) tours (k={best_k})')
+
+        print("  distance before improvement:")
+        for idx, tour in enumerate(cluster_tours):
+            dist = calculate_total_distance(tour)
+            print(f"    Cluster {idx + 1}: {dist:.2f}")
+        print("  distance after improvement:")
+        for idx, tour in enumerate(improved_tours):
+            dist = calculate_total_distance(tour)
+            print(f"    Cluster {idx + 1}: {dist:.2f}")
+
+        # Store result
+        results.append((fname, best_k, max_distance))
 
     # Save all k values to a text file
     output_file = os.path.join(base_dir, "k_values.txt")
