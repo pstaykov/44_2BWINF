@@ -2,6 +2,7 @@ import random
 import numpy as np
 import math
 import os
+import json
 from scipy.spatial.distance import cdist
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing as mp
@@ -440,6 +441,49 @@ if __name__ == "__main__":
         for idx, tour in enumerate(improved_tours):
             dist = calculate_total_distance(tour)
             print(f"    Cluster {idx + 1}: {dist:.2f}")
+
+        # --- Save clusters and their tours to JSON ---
+        clusters_json = []
+        num_clusters = max(len(clusters), len(cluster_tours), len(improved_tours))
+        for idx in range(num_clusters):
+            # Safe access with defaults
+            cluster = clusters[idx] if idx < len(clusters) else []
+            nn_tour = cluster_tours[idx] if idx < len(cluster_tours) else []
+            opt_tour = improved_tours[idx] if idx < len(improved_tours) else []
+
+            node_ids = [int(n[0]) for n in cluster]
+            nn_order = [int(n[0]) for n in nn_tour]
+            opt_order = [int(n[0]) for n in opt_tour]
+
+            dist_nn = float(calculate_total_distance(nn_tour)) if nn_tour else 0.0
+            dist_opt = float(calculate_total_distance(opt_tour)) if opt_tour else 0.0
+
+            clusters_json.append({
+                "cluster_id": idx + 1,
+                "node_ids": node_ids,
+                "tour_nn": nn_order,
+                "tour_2opt": opt_order,
+                "distance_nn": dist_nn,
+                "distance_2opt": dist_opt
+            })
+
+        output_dir = os.path.dirname(fpath) if fpath else base_dir
+        json_fname = os.path.splitext(fname)[0] + "_paths.json"
+        json_path = os.path.join(output_dir, json_fname)
+
+        json_data = {
+            "robot_file": fname,
+            "k": best_k,
+            "max_distance": float(max_distance),
+            "clusters": clusters_json
+        }
+
+        try:
+            with open(json_path, "w", encoding="utf-8") as jf:
+                json.dump(json_data, jf, indent=2)
+            print(f"  Saved paths JSON to: {json_path}")
+        except Exception as e:
+            print(f"  Failed to save JSON for {fname}: {e}")
 
         # Store result
         results.append((fname, best_k, max_distance))
