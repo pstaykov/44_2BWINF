@@ -1,602 +1,802 @@
 [
     {
         "k": 1,
-        "computation_time": 0.9385273456573486,
+        "computation_time": 0.6047327518463135,
         "longest_path_length": 3442.8310208151597,
-        "average_path_length": 200.0
+        "average_path_length": 200.0,
+        "average_cluster_size": 200.0,
+        "max_cluster_size": 200
     },
     {
         "k": 2,
-        "computation_time": 0.2195441722869873,
+        "computation_time": 0.1582949161529541,
         "longest_path_length": 2049.1518758154493,
-        "average_path_length": 100.0
+        "average_path_length": 100.0,
+        "average_cluster_size": 100.0,
+        "max_cluster_size": 100
     },
     {
         "k": 3,
-        "computation_time": 0.08099985122680664,
+        "computation_time": 0.059513092041015625,
         "longest_path_length": 1916.4495231053768,
-        "average_path_length": 66.66666666666667
+        "average_path_length": 66.66666666666667,
+        "average_cluster_size": 66.66666666666667,
+        "max_cluster_size": 99
     },
     {
         "k": 4,
-        "computation_time": 0.056799888610839844,
+        "computation_time": 0.0420680046081543,
         "longest_path_length": 1321.416265405496,
-        "average_path_length": 50.0
+        "average_path_length": 50.0,
+        "average_cluster_size": 50.0,
+        "max_cluster_size": 67
     },
     {
         "k": 5,
-        "computation_time": 0.033901214599609375,
+        "computation_time": 0.024529218673706055,
         "longest_path_length": 1248.3038451686843,
-        "average_path_length": 40.0
+        "average_path_length": 40.0,
+        "average_cluster_size": 40.0,
+        "max_cluster_size": 65
     },
     {
         "k": 6,
-        "computation_time": 0.040376901626586914,
+        "computation_time": 0.029918193817138672,
         "longest_path_length": 774.8795484425024,
-        "average_path_length": 33.333333333333336
+        "average_path_length": 33.333333333333336,
+        "average_cluster_size": 33.333333333333336,
+        "max_cluster_size": 67
     },
     {
         "k": 7,
-        "computation_time": 0.021551132202148438,
+        "computation_time": 0.016028165817260742,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 28.571428571428573
+        "average_path_length": 28.571428571428573,
+        "average_cluster_size": 28.571428571428573,
+        "max_cluster_size": 37
     },
     {
         "k": 8,
-        "computation_time": 0.016389846801757812,
+        "computation_time": 0.010720014572143555,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 25.0
+        "average_path_length": 25.0,
+        "average_cluster_size": 25.0,
+        "max_cluster_size": 34
     },
     {
         "k": 9,
-        "computation_time": 0.019146203994750977,
+        "computation_time": 0.012823104858398438,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 22.22222222222222
+        "average_path_length": 22.22222222222222,
+        "average_cluster_size": 22.22222222222222,
+        "max_cluster_size": 37
     },
     {
         "k": 10,
-        "computation_time": 0.014610528945922852,
+        "computation_time": 0.032379150390625,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 20.0
+        "average_path_length": 20.0,
+        "average_cluster_size": 20.0,
+        "max_cluster_size": 33
     },
     {
         "k": 11,
-        "computation_time": 0.0158083438873291,
+        "computation_time": 0.011067867279052734,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 18.181818181818183
+        "average_path_length": 18.181818181818183,
+        "average_cluster_size": 18.181818181818183,
+        "max_cluster_size": 33
     },
     {
         "k": 12,
-        "computation_time": 0.04181933403015137,
+        "computation_time": 0.02967095375061035,
         "longest_path_length": 774.8795484425024,
-        "average_path_length": 16.666666666666668
+        "average_path_length": 16.666666666666668,
+        "average_cluster_size": 16.666666666666668,
+        "max_cluster_size": 67
     },
     {
         "k": 13,
-        "computation_time": 0.01329803466796875,
+        "computation_time": 0.008787870407104492,
         "longest_path_length": 445.1253461898069,
-        "average_path_length": 15.384615384615385
+        "average_path_length": 15.384615384615385,
+        "average_cluster_size": 15.384615384615385,
+        "max_cluster_size": 33
     },
     {
         "k": 14,
-        "computation_time": 0.014029979705810547,
+        "computation_time": 0.008495092391967773,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 14.285714285714286
+        "average_path_length": 14.285714285714286,
+        "average_cluster_size": 14.285714285714286,
+        "max_cluster_size": 33
     },
     {
         "k": 15,
-        "computation_time": 0.014576196670532227,
+        "computation_time": 0.009240150451660156,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 13.333333333333334
+        "average_path_length": 13.333333333333334,
+        "average_cluster_size": 13.333333333333334,
+        "max_cluster_size": 34
     },
     {
         "k": 16,
-        "computation_time": 0.012833833694458008,
+        "computation_time": 0.008662939071655273,
         "longest_path_length": 281.08188696979204,
-        "average_path_length": 12.5
+        "average_path_length": 12.5,
+        "average_cluster_size": 12.5,
+        "max_cluster_size": 22
     },
     {
         "k": 17,
-        "computation_time": 0.010672807693481445,
+        "computation_time": 0.006115913391113281,
         "longest_path_length": 238.86176444993635,
-        "average_path_length": 11.764705882352942
+        "average_path_length": 11.764705882352942,
+        "average_cluster_size": 11.764705882352942,
+        "max_cluster_size": 22
     },
     {
         "k": 18,
-        "computation_time": 0.011200428009033203,
+        "computation_time": 0.007154941558837891,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 11.11111111111111
+        "average_path_length": 11.11111111111111,
+        "average_cluster_size": 11.11111111111111,
+        "max_cluster_size": 33
     },
     {
         "k": 19,
-        "computation_time": 0.019448518753051758,
+        "computation_time": 0.007292985916137695,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 10.526315789473685
+        "average_path_length": 10.526315789473685,
+        "average_cluster_size": 10.526315789473685,
+        "max_cluster_size": 33
     },
     {
         "k": 20,
-        "computation_time": 0.015756845474243164,
+        "computation_time": 0.006737947463989258,
         "longest_path_length": 459.64854097816493,
-        "average_path_length": 10.0
+        "average_path_length": 10.0,
+        "average_cluster_size": 10.0,
+        "max_cluster_size": 28
     },
     {
         "k": 21,
-        "computation_time": 0.016179323196411133,
+        "computation_time": 0.008589982986450195,
         "longest_path_length": 298.9869648343851,
-        "average_path_length": 9.523809523809524
+        "average_path_length": 9.523809523809524,
+        "average_cluster_size": 9.523809523809524,
+        "max_cluster_size": 25
     },
     {
         "k": 22,
-        "computation_time": 0.012033462524414062,
+        "computation_time": 0.0069429874420166016,
         "longest_path_length": 302.4559863936089,
-        "average_path_length": 9.090909090909092
+        "average_path_length": 9.090909090909092,
+        "average_cluster_size": 9.090909090909092,
+        "max_cluster_size": 19
     },
     {
         "k": 23,
-        "computation_time": 0.01127934455871582,
+        "computation_time": 0.007223844528198242,
         "longest_path_length": 280.82064638367245,
-        "average_path_length": 8.695652173913043
+        "average_path_length": 8.695652173913043,
+        "average_cluster_size": 8.695652173913043,
+        "max_cluster_size": 26
     },
     {
         "k": 24,
-        "computation_time": 0.01299142837524414,
+        "computation_time": 0.008087158203125,
         "longest_path_length": 293.37841734824804,
-        "average_path_length": 8.333333333333334
+        "average_path_length": 8.333333333333334,
+        "average_cluster_size": 8.333333333333334,
+        "max_cluster_size": 26
     },
     {
         "k": 25,
-        "computation_time": 0.010520458221435547,
+        "computation_time": 0.00641632080078125,
         "longest_path_length": 350.6348831106916,
-        "average_path_length": 8.0
+        "average_path_length": 8.0,
+        "average_cluster_size": 8.0,
+        "max_cluster_size": 26
     },
     {
         "k": 26,
-        "computation_time": 0.014374017715454102,
+        "computation_time": 0.007922172546386719,
         "longest_path_length": 445.1253461898069,
-        "average_path_length": 7.6923076923076925
+        "average_path_length": 7.6923076923076925,
+        "average_cluster_size": 7.6923076923076925,
+        "max_cluster_size": 33
     },
     {
         "k": 27,
-        "computation_time": 0.011409997940063477,
+        "computation_time": 0.0067560672760009766,
         "longest_path_length": 667.6320952696782,
-        "average_path_length": 7.407407407407407
+        "average_path_length": 7.407407407407407,
+        "average_cluster_size": 7.407407407407407,
+        "max_cluster_size": 33
     },
     {
         "k": 28,
-        "computation_time": 0.011214494705200195,
+        "computation_time": 0.006371021270751953,
         "longest_path_length": 266.01555363806466,
-        "average_path_length": 7.142857142857143
+        "average_path_length": 7.142857142857143,
+        "average_cluster_size": 7.142857142857143,
+        "max_cluster_size": 15
     },
     {
         "k": 29,
-        "computation_time": 0.009589195251464844,
+        "computation_time": 0.00588679313659668,
         "longest_path_length": 238.86176444993635,
-        "average_path_length": 6.896551724137931
+        "average_path_length": 6.896551724137931,
+        "average_cluster_size": 6.896551724137931,
+        "max_cluster_size": 19
     },
     {
         "k": 30,
-        "computation_time": 0.013126373291015625,
+        "computation_time": 0.006726741790771484,
         "longest_path_length": 257.1766678430645,
-        "average_path_length": 6.666666666666667
+        "average_path_length": 6.666666666666667,
+        "average_cluster_size": 6.666666666666667,
+        "max_cluster_size": 19
     },
     {
         "k": 31,
-        "computation_time": 0.011110782623291016,
+        "computation_time": 0.0064699649810791016,
         "longest_path_length": 248.41358520501163,
-        "average_path_length": 6.451612903225806
+        "average_path_length": 6.451612903225806,
+        "average_cluster_size": 6.451612903225806,
+        "max_cluster_size": 14
     },
     {
         "k": 32,
-        "computation_time": 0.010120391845703125,
+        "computation_time": 0.0055849552154541016,
         "longest_path_length": 415.3155044364355,
-        "average_path_length": 6.25
+        "average_path_length": 6.25,
+        "average_cluster_size": 6.25,
+        "max_cluster_size": 19
     },
     {
         "k": 33,
-        "computation_time": 0.012865781784057617,
+        "computation_time": 0.008271217346191406,
         "longest_path_length": 257.1963537679031,
-        "average_path_length": 6.0606060606060606
+        "average_path_length": 6.0606060606060606,
+        "average_cluster_size": 6.0606060606060606,
+        "max_cluster_size": 15
     },
     {
         "k": 34,
-        "computation_time": 0.011785507202148438,
+        "computation_time": 0.006949186325073242,
         "longest_path_length": 211.03575176879852,
-        "average_path_length": 5.882352941176471
+        "average_path_length": 5.882352941176471,
+        "average_cluster_size": 5.882352941176471,
+        "max_cluster_size": 13
     },
     {
         "k": 35,
-        "computation_time": 0.01054692268371582,
+        "computation_time": 0.006258964538574219,
         "longest_path_length": 182.23788710148702,
-        "average_path_length": 5.714285714285714
+        "average_path_length": 5.714285714285714,
+        "average_cluster_size": 5.714285714285714,
+        "max_cluster_size": 11
     },
     {
         "k": 36,
-        "computation_time": 0.012361526489257812,
+        "computation_time": 0.007009029388427734,
         "longest_path_length": 141.19675181673145,
-        "average_path_length": 5.555555555555555
+        "average_path_length": 5.555555555555555,
+        "average_cluster_size": 5.555555555555555,
+        "max_cluster_size": 15
     },
     {
         "k": 37,
-        "computation_time": 0.01226353645324707,
+        "computation_time": 0.006492137908935547,
         "longest_path_length": 145.8578686803748,
-        "average_path_length": 5.405405405405405
+        "average_path_length": 5.405405405405405,
+        "average_cluster_size": 5.405405405405405,
+        "max_cluster_size": 15
     },
     {
         "k": 38,
-        "computation_time": 0.012559175491333008,
+        "computation_time": 0.007742881774902344,
         "longest_path_length": 140.54506089519646,
-        "average_path_length": 5.2631578947368425
+        "average_path_length": 5.2631578947368425,
+        "average_cluster_size": 5.2631578947368425,
+        "max_cluster_size": 14
     },
     {
         "k": 39,
-        "computation_time": 0.011252403259277344,
+        "computation_time": 0.007205963134765625,
         "longest_path_length": 234.59601805769648,
-        "average_path_length": 5.128205128205129
+        "average_path_length": 5.128205128205129,
+        "average_cluster_size": 5.128205128205129,
+        "max_cluster_size": 12
     },
     {
         "k": 40,
-        "computation_time": 0.011985540390014648,
+        "computation_time": 0.0062329769134521484,
         "longest_path_length": 113.45786854355725,
-        "average_path_length": 5.0
+        "average_path_length": 5.0,
+        "average_cluster_size": 5.0,
+        "max_cluster_size": 15
     },
     {
         "k": 41,
-        "computation_time": 0.012161016464233398,
+        "computation_time": 0.006855964660644531,
         "longest_path_length": 279.8851996651568,
-        "average_path_length": 4.878048780487805
+        "average_path_length": 4.878048780487805,
+        "average_cluster_size": 4.878048780487805,
+        "max_cluster_size": 12
     },
     {
         "k": 42,
-        "computation_time": 0.012912273406982422,
+        "computation_time": 0.006736040115356445,
         "longest_path_length": 136.10521457854003,
-        "average_path_length": 4.761904761904762
+        "average_path_length": 4.761904761904762,
+        "average_cluster_size": 4.761904761904762,
+        "max_cluster_size": 10
     },
     {
         "k": 43,
-        "computation_time": 0.012348413467407227,
+        "computation_time": 0.0073931217193603516,
         "longest_path_length": 181.43349480834013,
-        "average_path_length": 4.651162790697675
+        "average_path_length": 4.651162790697675,
+        "average_cluster_size": 4.651162790697675,
+        "max_cluster_size": 15
     },
     {
         "k": 44,
-        "computation_time": 0.011382341384887695,
+        "computation_time": 0.006032705307006836,
         "longest_path_length": 201.05090145752678,
-        "average_path_length": 4.545454545454546
+        "average_path_length": 4.545454545454546,
+        "average_cluster_size": 4.545454545454546,
+        "max_cluster_size": 14
     },
     {
         "k": 45,
-        "computation_time": 0.011736631393432617,
+        "computation_time": 0.0067901611328125,
         "longest_path_length": 234.59601805769648,
-        "average_path_length": 4.444444444444445
+        "average_path_length": 4.444444444444445,
+        "average_cluster_size": 4.444444444444445,
+        "max_cluster_size": 12
     },
     {
         "k": 46,
-        "computation_time": 0.0128173828125,
+        "computation_time": 0.0078051090240478516,
         "longest_path_length": 114.19115067773568,
-        "average_path_length": 4.3478260869565215
+        "average_path_length": 4.3478260869565215,
+        "average_cluster_size": 4.3478260869565215,
+        "max_cluster_size": 11
     },
     {
         "k": 47,
-        "computation_time": 0.011925458908081055,
+        "computation_time": 0.007390022277832031,
         "longest_path_length": 148.34773306572677,
-        "average_path_length": 4.25531914893617
+        "average_path_length": 4.25531914893617,
+        "average_cluster_size": 4.25531914893617,
+        "max_cluster_size": 14
     },
     {
         "k": 48,
-        "computation_time": 0.01590442657470703,
+        "computation_time": 0.008537054061889648,
         "longest_path_length": 181.1198557752948,
-        "average_path_length": 4.166666666666667
+        "average_path_length": 4.166666666666667,
+        "average_cluster_size": 4.166666666666667,
+        "max_cluster_size": 11
     },
     {
         "k": 49,
-        "computation_time": 0.012752056121826172,
+        "computation_time": 0.007609128952026367,
         "longest_path_length": 118.2561830138255,
-        "average_path_length": 4.081632653061225
+        "average_path_length": 4.081632653061225,
+        "average_cluster_size": 4.081632653061225,
+        "max_cluster_size": 14
     },
     {
         "k": 50,
-        "computation_time": 0.012647151947021484,
+        "computation_time": 0.006592988967895508,
         "longest_path_length": 141.01622878720488,
-        "average_path_length": 4.0
+        "average_path_length": 4.0,
+        "average_cluster_size": 4.0,
+        "max_cluster_size": 11
     },
     {
         "k": 51,
-        "computation_time": 0.014052391052246094,
+        "computation_time": 0.007832765579223633,
         "longest_path_length": 88.89297328227076,
-        "average_path_length": 3.9215686274509802
+        "average_path_length": 3.9215686274509802,
+        "average_cluster_size": 3.9215686274509802,
+        "max_cluster_size": 11
     },
     {
         "k": 52,
-        "computation_time": 0.013634204864501953,
+        "computation_time": 0.008018016815185547,
         "longest_path_length": 129.0293592127969,
-        "average_path_length": 3.8461538461538463
+        "average_path_length": 3.8461538461538463,
+        "average_cluster_size": 3.8461538461538463,
+        "max_cluster_size": 15
     },
     {
         "k": 53,
-        "computation_time": 0.01228952407836914,
+        "computation_time": 0.007910013198852539,
         "longest_path_length": 123.72755342231714,
-        "average_path_length": 3.7735849056603774
+        "average_path_length": 3.7735849056603774,
+        "average_cluster_size": 3.7735849056603774,
+        "max_cluster_size": 11
     },
     {
         "k": 54,
-        "computation_time": 0.012898445129394531,
+        "computation_time": 0.006628274917602539,
         "longest_path_length": 126.77739612974243,
-        "average_path_length": 3.7037037037037037
+        "average_path_length": 3.7037037037037037,
+        "average_cluster_size": 3.7037037037037037,
+        "max_cluster_size": 10
     },
     {
         "k": 55,
-        "computation_time": 0.010947465896606445,
+        "computation_time": 0.006757974624633789,
         "longest_path_length": 150.4103572972283,
-        "average_path_length": 3.6363636363636362
+        "average_path_length": 3.6363636363636362,
+        "average_cluster_size": 3.6363636363636362,
+        "max_cluster_size": 13
     },
     {
         "k": 56,
-        "computation_time": 0.014990568161010742,
+        "computation_time": 0.00754094123840332,
         "longest_path_length": 112.15044980072477,
-        "average_path_length": 3.5714285714285716
+        "average_path_length": 3.5714285714285716,
+        "average_cluster_size": 3.5714285714285716,
+        "max_cluster_size": 9
     },
     {
         "k": 57,
-        "computation_time": 0.012986183166503906,
+        "computation_time": 0.006970882415771484,
         "longest_path_length": 113.45786854355725,
-        "average_path_length": 3.508771929824561
+        "average_path_length": 3.508771929824561,
+        "average_cluster_size": 3.508771929824561,
+        "max_cluster_size": 9
     },
     {
         "k": 58,
-        "computation_time": 0.012076616287231445,
+        "computation_time": 0.00682377815246582,
         "longest_path_length": 79.69796116900295,
-        "average_path_length": 3.4482758620689653
+        "average_path_length": 3.4482758620689653,
+        "average_cluster_size": 3.4482758620689653,
+        "max_cluster_size": 8
     },
     {
         "k": 59,
-        "computation_time": 0.018805265426635742,
+        "computation_time": 0.010796070098876953,
         "longest_path_length": 104.4330615109895,
-        "average_path_length": 3.389830508474576
+        "average_path_length": 3.389830508474576,
+        "average_cluster_size": 3.389830508474576,
+        "max_cluster_size": 9
     },
     {
         "k": 60,
-        "computation_time": 0.014171600341796875,
+        "computation_time": 0.00810694694519043,
         "longest_path_length": 85.83953551107454,
-        "average_path_length": 3.3333333333333335
+        "average_path_length": 3.3333333333333335,
+        "average_cluster_size": 3.3333333333333335,
+        "max_cluster_size": 8
     },
     {
         "k": 61,
-        "computation_time": 0.014735698699951172,
+        "computation_time": 0.008342981338500977,
         "longest_path_length": 108.34383580955902,
-        "average_path_length": 3.278688524590164
+        "average_path_length": 3.278688524590164,
+        "average_cluster_size": 3.278688524590164,
+        "max_cluster_size": 9
     },
     {
         "k": 62,
-        "computation_time": 0.015959978103637695,
+        "computation_time": 0.009710073471069336,
         "longest_path_length": 88.51500855985664,
-        "average_path_length": 3.225806451612903
+        "average_path_length": 3.225806451612903,
+        "average_cluster_size": 3.225806451612903,
+        "max_cluster_size": 8
     },
     {
         "k": 63,
-        "computation_time": 0.011235475540161133,
+        "computation_time": 0.0064198970794677734,
         "longest_path_length": 104.4330615109895,
-        "average_path_length": 3.1746031746031744
+        "average_path_length": 3.1746031746031744,
+        "average_cluster_size": 3.1746031746031744,
+        "max_cluster_size": 8
     },
     {
         "k": 64,
-        "computation_time": 0.011605262756347656,
+        "computation_time": 0.0071642398834228516,
         "longest_path_length": 149.22163929330497,
-        "average_path_length": 3.125
+        "average_path_length": 3.125,
+        "average_cluster_size": 3.125,
+        "max_cluster_size": 10
     },
     {
         "k": 65,
-        "computation_time": 0.011715412139892578,
+        "computation_time": 0.007196903228759766,
         "longest_path_length": 220.38657428793235,
-        "average_path_length": 3.076923076923077
+        "average_path_length": 3.076923076923077,
+        "average_cluster_size": 3.076923076923077,
+        "max_cluster_size": 12
     },
     {
         "k": 66,
-        "computation_time": 0.012016773223876953,
+        "computation_time": 0.006582975387573242,
         "longest_path_length": 181.1198557752948,
-        "average_path_length": 3.0303030303030303
+        "average_path_length": 3.0303030303030303,
+        "average_cluster_size": 3.0303030303030303,
+        "max_cluster_size": 7
     },
     {
         "k": 67,
-        "computation_time": 0.01230931282043457,
+        "computation_time": 0.0074329376220703125,
         "longest_path_length": 104.4330615109895,
-        "average_path_length": 2.985074626865672
+        "average_path_length": 2.985074626865672,
+        "average_cluster_size": 2.985074626865672,
+        "max_cluster_size": 6
     },
     {
         "k": 68,
-        "computation_time": 0.013972759246826172,
+        "computation_time": 0.007422924041748047,
         "longest_path_length": 108.34383580955902,
-        "average_path_length": 2.9411764705882355
+        "average_path_length": 2.9411764705882355,
+        "average_cluster_size": 2.9411764705882355,
+        "max_cluster_size": 8
     },
     {
         "k": 69,
-        "computation_time": 0.015196800231933594,
+        "computation_time": 0.008880853652954102,
         "longest_path_length": 72.7191313669274,
-        "average_path_length": 2.898550724637681
+        "average_path_length": 2.898550724637681,
+        "average_cluster_size": 2.898550724637681,
+        "max_cluster_size": 8
     },
     {
         "k": 70,
-        "computation_time": 0.016604900360107422,
+        "computation_time": 0.010827064514160156,
         "longest_path_length": 110.85856751692523,
-        "average_path_length": 2.857142857142857
+        "average_path_length": 2.857142857142857,
+        "average_cluster_size": 2.857142857142857,
+        "max_cluster_size": 8
     },
     {
         "k": 71,
-        "computation_time": 0.011178016662597656,
+        "computation_time": 0.006842136383056641,
         "longest_path_length": 130.08492404804954,
-        "average_path_length": 2.816901408450704
+        "average_path_length": 2.816901408450704,
+        "average_cluster_size": 2.816901408450704,
+        "max_cluster_size": 10
     },
     {
         "k": 72,
-        "computation_time": 0.014635324478149414,
+        "computation_time": 0.007620096206665039,
         "longest_path_length": 66.59989786304745,
-        "average_path_length": 2.7777777777777777
+        "average_path_length": 2.7777777777777777,
+        "average_cluster_size": 2.7777777777777777,
+        "max_cluster_size": 7
     },
     {
         "k": 73,
-        "computation_time": 0.015138387680053711,
+        "computation_time": 0.008620977401733398,
         "longest_path_length": 79.69796116900295,
-        "average_path_length": 2.73972602739726
+        "average_path_length": 2.73972602739726,
+        "average_cluster_size": 2.73972602739726,
+        "max_cluster_size": 6
     },
     {
         "k": 74,
-        "computation_time": 0.013205528259277344,
+        "computation_time": 0.007813215255737305,
         "longest_path_length": 104.4330615109895,
-        "average_path_length": 2.7027027027027026
+        "average_path_length": 2.7027027027027026,
+        "average_cluster_size": 2.7027027027027026,
+        "max_cluster_size": 8
     },
     {
         "k": 75,
-        "computation_time": 0.014041900634765625,
+        "computation_time": 0.008730888366699219,
         "longest_path_length": 90.62797068273666,
-        "average_path_length": 2.6666666666666665
+        "average_path_length": 2.6666666666666665,
+        "average_cluster_size": 2.6666666666666665,
+        "max_cluster_size": 8
     },
     {
         "k": 76,
-        "computation_time": 0.014137029647827148,
+        "computation_time": 0.008807897567749023,
         "longest_path_length": 104.4330615109895,
-        "average_path_length": 2.6315789473684212
+        "average_path_length": 2.6315789473684212,
+        "average_cluster_size": 2.6315789473684212,
+        "max_cluster_size": 6
     },
     {
         "k": 77,
-        "computation_time": 0.015308380126953125,
+        "computation_time": 0.009606122970581055,
         "longest_path_length": 108.34383580955902,
-        "average_path_length": 2.5974025974025974
+        "average_path_length": 2.5974025974025974,
+        "average_cluster_size": 2.5974025974025974,
+        "max_cluster_size": 8
     },
     {
         "k": 78,
-        "computation_time": 0.014123678207397461,
+        "computation_time": 0.007987022399902344,
         "longest_path_length": 100.29185370808686,
-        "average_path_length": 2.5641025641025643
+        "average_path_length": 2.5641025641025643,
+        "average_cluster_size": 2.5641025641025643,
+        "max_cluster_size": 7
     },
     {
         "k": 79,
-        "computation_time": 0.022742509841918945,
+        "computation_time": 0.011018991470336914,
         "longest_path_length": 145.8578686803748,
-        "average_path_length": 2.5316455696202533
+        "average_path_length": 2.5316455696202533,
+        "average_cluster_size": 2.5316455696202533,
+        "max_cluster_size": 6
     },
     {
         "k": 80,
-        "computation_time": 0.020075559616088867,
+        "computation_time": 0.010189056396484375,
         "longest_path_length": 60.181556306689,
-        "average_path_length": 2.5
+        "average_path_length": 2.5,
+        "average_cluster_size": 2.5,
+        "max_cluster_size": 7
     },
     {
         "k": 81,
-        "computation_time": 0.01634693145751953,
+        "computation_time": 0.010000228881835938,
         "longest_path_length": 104.4330615109895,
-        "average_path_length": 2.4691358024691357
+        "average_path_length": 2.4691358024691357,
+        "average_cluster_size": 2.4691358024691357,
+        "max_cluster_size": 7
     },
     {
         "k": 82,
-        "computation_time": 0.013525009155273438,
+        "computation_time": 0.008412837982177734,
         "longest_path_length": 65.75872256444264,
-        "average_path_length": 2.4390243902439024
+        "average_path_length": 2.4390243902439024,
+        "average_cluster_size": 2.4390243902439024,
+        "max_cluster_size": 6
     },
     {
         "k": 83,
-        "computation_time": 0.0149078369140625,
+        "computation_time": 0.009332895278930664,
         "longest_path_length": 65.75872256444264,
-        "average_path_length": 2.4096385542168677
+        "average_path_length": 2.4096385542168677,
+        "average_cluster_size": 2.4096385542168677,
+        "max_cluster_size": 5
     },
     {
         "k": 84,
-        "computation_time": 0.01500844955444336,
+        "computation_time": 0.008867025375366211,
         "longest_path_length": 89.91798719263053,
-        "average_path_length": 2.380952380952381
+        "average_path_length": 2.380952380952381,
+        "average_cluster_size": 2.380952380952381,
+        "max_cluster_size": 6
     },
     {
         "k": 85,
-        "computation_time": 0.014900922775268555,
+        "computation_time": 0.009721755981445312,
         "longest_path_length": 100.29185370808686,
-        "average_path_length": 2.3529411764705883
+        "average_path_length": 2.3529411764705883,
+        "average_cluster_size": 2.3529411764705883,
+        "max_cluster_size": 6
     },
     {
         "k": 86,
-        "computation_time": 0.014890193939208984,
+        "computation_time": 0.008630752563476562,
         "longest_path_length": 71.52752494378225,
-        "average_path_length": 2.3255813953488373
+        "average_path_length": 2.3255813953488373,
+        "average_cluster_size": 2.3255813953488373,
+        "max_cluster_size": 5
     },
     {
         "k": 87,
-        "computation_time": 0.015262603759765625,
+        "computation_time": 0.009566307067871094,
         "longest_path_length": 65.75872256444264,
-        "average_path_length": 2.2988505747126435
+        "average_path_length": 2.2988505747126435,
+        "average_cluster_size": 2.2988505747126435,
+        "max_cluster_size": 6
     },
     {
         "k": 88,
-        "computation_time": 0.012067317962646484,
+        "computation_time": 0.00777888298034668,
         "longest_path_length": 79.69796116900295,
-        "average_path_length": 2.272727272727273
+        "average_path_length": 2.272727272727273,
+        "average_cluster_size": 2.272727272727273,
+        "max_cluster_size": 8
     },
     {
         "k": 89,
-        "computation_time": 0.011695146560668945,
+        "computation_time": 0.007834911346435547,
         "longest_path_length": 82.39181390527418,
-        "average_path_length": 2.247191011235955
+        "average_path_length": 2.247191011235955,
+        "average_cluster_size": 2.247191011235955,
+        "max_cluster_size": 6
     },
     {
         "k": 90,
-        "computation_time": 0.013943672180175781,
+        "computation_time": 0.007825851440429688,
         "longest_path_length": 53.244317527639694,
-        "average_path_length": 2.2222222222222223
+        "average_path_length": 2.2222222222222223,
+        "average_cluster_size": 2.2222222222222223,
+        "max_cluster_size": 6
     },
     {
         "k": 91,
-        "computation_time": 0.014519929885864258,
+        "computation_time": 0.008988142013549805,
         "longest_path_length": 69.3864623613957,
-        "average_path_length": 2.197802197802198
+        "average_path_length": 2.197802197802198,
+        "average_cluster_size": 2.197802197802198,
+        "max_cluster_size": 6
     },
     {
         "k": 92,
-        "computation_time": 0.014625310897827148,
+        "computation_time": 0.007907867431640625,
         "longest_path_length": 88.51500855985664,
-        "average_path_length": 2.1739130434782608
+        "average_path_length": 2.1739130434782608,
+        "average_cluster_size": 2.1739130434782608,
+        "max_cluster_size": 6
     },
     {
         "k": 93,
-        "computation_time": 0.014104604721069336,
+        "computation_time": 0.009314775466918945,
         "longest_path_length": 61.443914256060566,
-        "average_path_length": 2.150537634408602
+        "average_path_length": 2.150537634408602,
+        "average_cluster_size": 2.150537634408602,
+        "max_cluster_size": 5
     },
     {
         "k": 94,
-        "computation_time": 0.017355680465698242,
+        "computation_time": 0.010071039199829102,
         "longest_path_length": 71.52752494378225,
-        "average_path_length": 2.127659574468085
+        "average_path_length": 2.127659574468085,
+        "average_cluster_size": 2.127659574468085,
+        "max_cluster_size": 5
     },
     {
         "k": 95,
-        "computation_time": 0.013441324234008789,
+        "computation_time": 0.008143186569213867,
         "longest_path_length": 109.50898045989081,
-        "average_path_length": 2.1052631578947367
+        "average_path_length": 2.1052631578947367,
+        "average_cluster_size": 2.1052631578947367,
+        "max_cluster_size": 6
     },
     {
         "k": 96,
-        "computation_time": 0.017615795135498047,
+        "computation_time": 0.011447668075561523,
         "longest_path_length": 61.443914256060566,
-        "average_path_length": 2.0833333333333335
+        "average_path_length": 2.0833333333333335,
+        "average_cluster_size": 2.0833333333333335,
+        "max_cluster_size": 6
     },
     {
         "k": 97,
-        "computation_time": 0.020395994186401367,
+        "computation_time": 0.013436079025268555,
         "longest_path_length": 44.71974726784032,
-        "average_path_length": 2.0618556701030926
+        "average_path_length": 2.0618556701030926,
+        "average_cluster_size": 2.0618556701030926,
+        "max_cluster_size": 6
     },
     {
         "k": 98,
-        "computation_time": 0.01567673683166504,
+        "computation_time": 0.009266853332519531,
         "longest_path_length": 65.75872256444264,
-        "average_path_length": 2.0408163265306123
+        "average_path_length": 2.0408163265306123,
+        "average_cluster_size": 2.0408163265306123,
+        "max_cluster_size": 6
     },
     {
         "k": 99,
-        "computation_time": 0.01965475082397461,
+        "computation_time": 0.01264810562133789,
         "longest_path_length": 41.707589115915574,
-        "average_path_length": 2.0202020202020203
+        "average_path_length": 2.0202020202020203,
+        "average_cluster_size": 2.0202020202020203,
+        "max_cluster_size": 5
     },
     {
         "k": 100,
-        "computation_time": 0.01569533348083496,
+        "computation_time": 0.009334087371826172,
         "longest_path_length": 51.02082429892863,
-        "average_path_length": 2.0
+        "average_path_length": 2.0,
+        "average_cluster_size": 2.0,
+        "max_cluster_size": 5
     }
 ]

@@ -88,3 +88,59 @@ def visualise_clusters_with_centroids(clusters, centroids, title='Clusters with 
     plt.grid(True)
     plt.show()
 
+
+def plot_cluster_size_vs_k(clustered_clusters, title='Cluster sizes vs k', save_path=None):
+    """Plot k against average cluster size and max cluster size in one plot.
+
+    Parameters
+    - clustered_clusters: either
+        * dict mapping k -> list_of_clusters (each cluster is a sequence of datapoints), or
+        * list where each element is list_of_clusters for successive k values (k inferred as indices starting at 0)
+    - title: plot title
+    - save_path: optional path to save the figure
+
+    A cluster's size is simply the number of datapoints in that cluster (len(cluster)).
+    """
+    # Normalize input to ordered lists of (k, clusters)
+    if isinstance(clustered_clusters, dict):
+        items = sorted(clustered_clusters.items(), key=lambda x: x[0])
+        ks = [k for k, _ in items]
+        cluster_lists = [clusters for _, clusters in items]
+    elif isinstance(clustered_clusters, list):
+        ks = list(range(len(clustered_clusters)))
+        cluster_lists = clustered_clusters
+    else:
+        raise TypeError("clustered_clusters must be a dict (k->clusters) or a list of clusters-per-k")
+
+    avg_sizes = []
+    max_sizes = []
+
+    for clusters in cluster_lists:
+        if not clusters:
+            avg_sizes.append(0)
+            max_sizes.append(0)
+            continue
+        sizes = [len(c) for c in clusters]
+        avg = sum(sizes) / len(sizes) if sizes else 0
+        mx = max(sizes) if sizes else 0
+        avg_sizes.append(avg)
+        max_sizes.append(mx)
+
+    plt.figure()
+    sns.set_style("whitegrid")
+    plt.plot(ks, avg_sizes, marker='o', label='Average cluster size')
+    plt.plot(ks, max_sizes, marker='s', label='Max cluster size')
+    plt.xlabel('k')
+    plt.ylabel('Cluster size (number of datapoints)')
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+
+    if save_path:
+        try:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Saved cluster size plot to: {save_path}")
+        except Exception as e:
+            print(f"Failed to save cluster size plot to {save_path}: {e}")
+
+    plt.show()

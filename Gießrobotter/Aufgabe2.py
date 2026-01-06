@@ -2,6 +2,7 @@ import random
 import numpy as np
 import math
 import os
+import json
 from scipy.spatial.distance import cdist
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing as mp
@@ -312,79 +313,6 @@ def interpolation_search_phase(nodes, max_len, num_nodes, num_workers, computed)
     return k_current, tested_ks, computed
 
 
-def find_binary_search_interval(k_current, tested_ks, nodes, max_len, num_workers, computed):
-    """Find the interval [k_start, k_current] for binary search.
-
-    Args:
-        k_current: Upper bound k (should satisfy constraint)
-        tested_ks: List of already tested k values
-        nodes: List of node data
-        max_len: Target maximum distance
-        num_workers: Number of workers
-        computed: Cache dictionary
-
-    Returns:
-        Tuple of (k_start, computed) where computed is updated cache
-    """
-    # Fallback: ensure k_current is defined
-    if k_current is None:
-        k_current = max(tested_ks) if tested_ks else len(nodes)
-
-    # Determine the largest already-tested k strictly less than k_current
-    tested_less = [t for t in tested_ks if t < k_current]
-    max_tested_less = max(tested_less) if tested_less else 0
-
-    # Find a starting k using a midpoint walk
-    min_k = max_tested_less + 1
-    max_k = max(1, k_current - 1)
-    if min_k < 1:
-        min_k = 1
-
-    # If interval is trivial, start at min_k
-    if min_k >= max_k:
-        k_start = min_k
-    else:
-        k = min_k
-        needed = max_len
-        max_iters = 25
-        iters = 0
-
-        # Move min upwards by halving the remaining interval until evaluation >= needed
-        while iters < max_iters:
-            # Evaluate (with cache) and get max distance
-            if k in computed and len(computed[k]) >= 1:
-                dist = computed[k][0]
-            else:
-                res = evaluate_k(nodes, k, num_workers)
-                computed[k] = res
-                dist = res[0]
-
-            if dist >= needed:
-                break
-
-            dif = max_k - min_k
-            if dif <= 1:
-                # advance by one if no more room to halve
-                k = min(max_k, min_k + 1)
-                # Evaluate final candidate
-                if k in computed and len(computed[k]) >= 1:
-                    dist = computed[k][0]
-                else:
-                    res = evaluate_k(nodes, k, num_workers)
-                    computed[k] = res
-                    dist = res[0]
-                break
-
-            # move to midpoint of remaining interval and continue
-            k = min_k + dif // 2
-            min_k = k
-            iters += 1
-
-        k_start = max(1, k)
-
-    return k_start, computed
-
-
 def binary_search_minimal_k(k_start, k_current, max_len, nodes, num_workers, computed):
     """Perform binary search to find minimal k satisfying constraint.
 
@@ -441,9 +369,10 @@ def find_min_k(nodes, max_len, num_nodes, num_workers):
     )
 
     # Phase 2: Find the binary search interval
-    k_start, computed = find_binary_search_interval(
-        k_current, tested_ks, nodes, max_len, num_workers, computed
-    )
+    # Use a simple and safe lower bound: one greater than the largest previously tested k < k_current
+    tested_less = [t for t in tested_ks if t < k_current]
+    max_tested_less = max(tested_less) if tested_less else 0
+    k_start = max(1, max_tested_less + 1)
 
     print(f"  Binary search interval: [{k_start}, {k_current}] (tested_ks: {sorted(set(tested_ks))})")
 
@@ -512,6 +441,49 @@ if __name__ == "__main__":
         for idx, tour in enumerate(improved_tours):
             dist = calculate_total_distance(tour)
             print(f"    Cluster {idx + 1}: {dist:.2f}")
+
+        # --- Save clusters and their tours to JSON ---
+        clusters_json = []
+        num_clusters = max(len(clusters), len(cluster_tours), len(improved_tours))
+        for idx in range(num_clusters):
+            # Safe access with defaults
+            cluster = clusters[idx] if idx < len(clusters) else []
+            nn_tour = cluster_tours[idx] if idx < len(cluster_tours) else []
+            opt_tour = improved_tours[idx] if idx < len(improved_tours) else []
+
+            node_ids = [int(n[0]) for n in cluster]
+            nn_order = [int(n[0]) for n in nn_tour]
+            opt_order = [int(n[0]) for n in opt_tour]
+
+            dist_nn = float(calculate_total_distance(nn_tour)) if nn_tour else 0.0
+            dist_opt = float(calculate_total_distance(opt_tour)) if opt_tour else 0.0
+
+            clusters_json.append({
+                "cluster_id": idx + 1,
+                "node_ids": node_ids,
+                "tour_nn": nn_order,
+                "tour_2opt": opt_order,
+                "distance_nn": dist_nn,
+                "distance_2opt": dist_opt
+            })
+
+        output_dir = os.path.dirname(fpath) if fpath else base_dir
+        json_fname = os.path.splitext(fname)[0] + "_paths.json"
+        json_path = os.path.join(output_dir, json_fname)
+
+        json_data = {
+            "robot_file": fname,
+            "k": best_k,
+            "max_distance": float(max_distance),
+            "clusters": clusters_json
+        }
+
+        try:
+            with open(json_path, "w", encoding="utf-8") as jf:
+                json.dump(json_data, jf, indent=2)
+            print(f"  Saved paths JSON to: {json_path}")
+        except Exception as e:
+            print(f"  Failed to save JSON for {fname}: {e}")
 
         # Store result
         results.append((fname, best_k, max_distance))
