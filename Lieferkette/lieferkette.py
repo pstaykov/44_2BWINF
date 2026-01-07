@@ -114,136 +114,176 @@ def create_layered_graph(Werke, Strassen):
     return layered_edges
 
 
-T, Schritte, WerkeSchritte, nWerke, Werke, nStrassen, Strassen = read_file("A3_Lieferkette/lieferung00.txt")
+# Replace single-file execution with a reusable processor and CLI
 
-path, distance = dijkstra_shortest_path(Strassen, "S", "T")
+def process_file(file_path, visualize=False):
+    try:
+        T, Schritte, WerkeSchritte, nWerke, Werke, nStrassen, Strassen = read_file(file_path)
+    except FileNotFoundError:
+        print(f"Datei nicht gefunden: {file_path}")
+        return None
 
-layered_graph = create_layered_graph(Werke, Strassen)
+    print("\n" + "=" * 60)
+    print(f"Verarbeite: {file_path}")
 
-path_layered, distance = dijkstra_shortest_path(layered_graph, "S", "T")
-print(f"Bester Pfad durch die Werke (Schichtengraph): {path_layered}")
-print(f"Gesamtzeit: {distance}")
+    path, distance = dijkstra_shortest_path(Strassen, "S", "T")
 
-full_path = []
-if path_layered:
-    for i in range(len(path_layered) - 1):
-        segment_path, _ = dijkstra_shortest_path(Strassen, path_layered[i], path_layered[i + 1])
-        if i == 0:
-            full_path.extend(segment_path)
-        else:
-            full_path.extend(segment_path[1:])
+    layered_graph = create_layered_graph(Werke, Strassen)
 
-print(f"Vollstandiger Pfad im Strassennetz: {full_path}")
+    path_layered, distance = dijkstra_shortest_path(layered_graph, "S", "T")
+    print(f"Bester Pfad durch die Werke (Schichtengraph): {path_layered}")
+    print(f"Gesamtzeit: {distance}")
 
-if int(distance) <= int(T):
-    print("Die Lieferung ist innerhalb der Zeitfrist moglich.")
-else:
-    print("Die Lieferung ist NICHT innerhalb der Zeitfrist moglich.")
-
-visualize_graph(Strassen, full_path)
-
-print("\nStreik Scenarios testen")
-print(f"Optimaler Pfad ohne Streik: {path_layered}")
-print(f"Optimale Zeit ohne Streik: {distance}")
-print()
-
-factories_to_test = [f for f in path_layered if f != "S" and f != "T"]
-all_feasible = True
-contingency_plans = {}
-
-for strike_factory in factories_to_test:
-    print(f"Szenario: Werk {strike_factory} ist bestreikt")
-
-    strike_index = path_layered.index(strike_factory)
-    path_up_to_strike = path_layered[:strike_index + 1]
-
-    time_up_to_strike = 0
-    for i in range(len(path_up_to_strike) - 1):
-        for edge in layered_graph:
-            if edge[0] == path_up_to_strike[i] and edge[1] == path_up_to_strike[i + 1]:
-                time_up_to_strike += edge[2]
-                break
-
-    factory_to_stage = {factory_id: int(stage) for factory_id, stage in Werke.items()}
-    strike_stage = factory_to_stage[strike_factory]
-
-    factories_in_same_stage = [fid for fid, stage in factory_to_stage.items() if stage == strike_stage and fid != strike_factory]
-
-    filtered_layered_graph = []
-    for edge in layered_graph:
-        source, target, weight = edge[0], edge[1], edge[2]
-
-        if target == strike_factory:
-            continue
-
-        if source == strike_factory:
-            if target in factories_in_same_stage:
-                filtered_layered_graph.append(edge)
-        else:
-            filtered_layered_graph.append(edge)
-
-    for alt_factory in factories_in_same_stage:
-        path, distance_alt = dijkstra_shortest_path(Strassen, strike_factory, alt_factory)
-        if distance_alt != float('inf'):
-            filtered_layered_graph.append([strike_factory, alt_factory, int(distance_alt)])
-
-    path_from_strike, distance_from_strike = dijkstra_shortest_path(filtered_layered_graph, strike_factory, "T")
-
-    if path_from_strike and distance_from_strike != float('inf'):
-        path_with_strike = path_up_to_strike + path_from_strike[1:]
-        distance_with_strike = time_up_to_strike + distance_from_strike
-    else:
-        path_with_strike = []
-        distance_with_strike = float('inf')
-
-    print(f"Notfall-Pfad: {path_with_strike}")
-    print(f"Zeit mit Streik: {distance_with_strike}")
-
-    if distance_with_strike != float('inf') and int(distance_with_strike) <= int(T):
-        print(f"Lieferung moglich innerhalb Zeitfrist ({distance_with_strike} <= {T})")
-    else:
-        if distance_with_strike == float('inf'):
-            print(f"Lieferung nicht moglich (kein alternativer Weg gefunden)")
-        else:
-            print(f"Lieferung nicht moglich ({distance_with_strike} > {T})")
-        all_feasible = False
-
-    full_path_strike = []
-    if path_with_strike and distance_with_strike != float('inf'):
-        for i in range(len(path_with_strike) - 1):
-            segment_path, _ = dijkstra_shortest_path(Strassen, path_with_strike[i], path_with_strike[i+1])
+    full_path = []
+    if path_layered:
+        for i in range(len(path_layered) - 1):
+            segment_path, _ = dijkstra_shortest_path(Strassen, path_layered[i], path_layered[i + 1])
             if i == 0:
-                full_path_strike.extend(segment_path)
+                full_path.extend(segment_path)
             else:
-                full_path_strike.extend(segment_path[1:])
+                full_path.extend(segment_path[1:])
 
-    contingency_plans[strike_factory] = {
-        'path_layered': path_with_strike,
-        'path_full': full_path_strike,
-        'distance': distance_with_strike,
-        'feasible': distance_with_strike != float('inf') and int(distance_with_strike) <= int(T)
-    }
+    print(f"Vollstandiger Pfad im Strassennetz: {full_path}")
 
-    print(f"Vollstandiger Pfad: {full_path_strike}")
+    try:
+        if int(distance) <= int(T):
+            print("Die Lieferung ist innerhalb der Zeitfrist moglich.")
+        else:
+            print("Die Lieferung ist NICHT innerhalb der Zeitfrist moglich.")
+    except (ValueError, TypeError):
+        print("Warnung: Ungultige Zeitangabe T oder distance; Ueberpruefen der Eingabedatei.")
+
+    if visualize:
+        visualize_graph(Strassen, full_path)
+
+    print("\nStreik Scenarios testen")
+    print(f"Optimaler Pfad ohne Streik: {path_layered}")
+    print(f"Optimale Zeit ohne Streik: {distance}")
     print()
 
+    factories_to_test = [f for f in path_layered if f != "S" and f != "T"] if path_layered else []
+    all_feasible = True
+    contingency_plans = {}
 
-print("\nZUSAMMENFASSUNG: STREIK-AUSWIRKUNGEN")
-print("=" * 50)
+    for strike_factory in factories_to_test:
+        print(f"Szenario: Werk {strike_factory} ist bestreikt")
 
-possible_strikes = [factory for factory, plan in contingency_plans.items() if plan['feasible']]
-impossible_strikes = [factory for factory, plan in contingency_plans.items() if not plan['feasible']]
+        strike_index = path_layered.index(strike_factory)
+        path_up_to_strike = path_layered[:strike_index + 1]
 
-if possible_strikes:
-    print(f"Lieferung MOGLICH bei Streik von: {', '.join(possible_strikes)}")
-else:
-    print("Keine Werke, bei deren Streik die Lieferung moglich ist.")
+        time_up_to_strike = 0
+        for i in range(len(path_up_to_strike) - 1):
+            for edge in layered_graph:
+                if edge[0] == path_up_to_strike[i] and edge[1] == path_up_to_strike[i + 1]:
+                    time_up_to_strike += edge[2]
+                    break
 
-if impossible_strikes:
-    print(f"Lieferung NICHT MOGLICH bei Streik von: {', '.join(impossible_strikes)}")
-else:
-    print("Alle Werke: Die Lieferung bleibt bei Streik moglich.")
+        factory_to_stage = {factory_id: int(stage) for factory_id, stage in Werke.items()}
+        strike_stage = factory_to_stage.get(strike_factory)
 
-print("=" * 50)
+        factories_in_same_stage = [fid for fid, stage in factory_to_stage.items() if stage == strike_stage and fid != strike_factory]
+
+        filtered_layered_graph = []
+        for edge in layered_graph:
+            source, target, weight = edge[0], edge[1], edge[2]
+
+            if target == strike_factory:
+                continue
+
+            if source == strike_factory:
+                if target in factories_in_same_stage:
+                    filtered_layered_graph.append(edge)
+            else:
+                filtered_layered_graph.append(edge)
+
+        for alt_factory in factories_in_same_stage:
+            path, distance_alt = dijkstra_shortest_path(Strassen, strike_factory, alt_factory)
+            if distance_alt != float('inf'):
+                filtered_layered_graph.append([strike_factory, alt_factory, int(distance_alt)])
+
+        path_from_strike, distance_from_strike = dijkstra_shortest_path(filtered_layered_graph, strike_factory, "T")
+
+        if path_from_strike and distance_from_strike != float('inf'):
+            path_with_strike = path_up_to_strike + path_from_strike[1:]
+            distance_with_strike = time_up_to_strike + distance_from_strike
+        else:
+            path_with_strike = []
+            distance_with_strike = float('inf')
+
+        print(f"Notfall-Pfad: {path_with_strike}")
+        print(f"Zeit mit Streik: {distance_with_strike}")
+
+        if distance_with_strike != float('inf') and int(distance_with_strike) <= int(T):
+            print(f"Lieferung moglich innerhalb Zeitfrist ({distance_with_strike} <= {T})")
+        else:
+            if distance_with_strike == float('inf'):
+                print(f"Lieferung nicht moglich (kein alternativer Weg gefunden)")
+            else:
+                print(f"Lieferung nicht moglich ({distance_with_strike} > {T})")
+            all_feasible = False
+
+        full_path_strike = []
+        if path_with_strike and distance_with_strike != float('inf'):
+            for i in range(len(path_with_strike) - 1):
+                segment_path, _ = dijkstra_shortest_path(Strassen, path_with_strike[i], path_with_strike[i+1])
+                if i == 0:
+                    full_path_strike.extend(segment_path)
+                else:
+                    full_path_strike.extend(segment_path[1:])
+
+        contingency_plans[strike_factory] = {
+            'path_layered': path_with_strike,
+            'path_full': full_path_strike,
+            'distance': distance_with_strike,
+            'feasible': distance_with_strike != float('inf') and int(distance_with_strike) <= int(T)
+        }
+
+        print(f"Vollstandiger Pfad: {full_path_strike}")
+        print()
+
+    print("\nZUSAMMENFASSUNG: STREIK-AUSWIRKUNGEN")
+    print("=" * 50)
+
+    possible_strikes = [factory for factory, plan in contingency_plans.items() if plan['feasible']]
+    impossible_strikes = [factory for factory, plan in contingency_plans.items() if not plan['feasible']]
+
+    if possible_strikes:
+        print(f"Lieferung MOGLICH bei Streik von: {', '.join(possible_strikes)}")
+    else:
+        print("Keine Werke, bei deren Streik die Lieferung moglich ist.")
+
+    if impossible_strikes:
+        print(f"Lieferung NICHT MOGLICH bei Streik von: {', '.join(impossible_strikes)}")
+    else:
+        print("Alle Werke: Die Lieferung bleibt bei Streik moglich.")
+
+    print("=" * 50)
+
+    return {
+        'file': file_path,
+        'path_layered': path_layered,
+        'distance': distance,
+        'full_path': full_path,
+        'contingency': contingency_plans,
+        'all_feasible': all_feasible
+    }
 
 
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Prozessiere Lieferungsdateien (lieferung00..lieferung08).')
+    parser.add_argument('--start', type=int, default=0, help='Startindex (inclusive), default 0')
+    parser.add_argument('--end', type=int, default=8, help='Endindex (inclusive), default 8')
+    parser.add_argument('--visualize', action='store_true', help='Zeige Graphen fuer jede Datei')
+    args = parser.parse_args()
+
+    results = []
+    for i in range(args.start, args.end + 1):
+        fname = f"A3_Lieferkette/lieferung{i:02d}.txt"
+        res = process_file(fname, visualize=args.visualize)
+        if res is not None:
+            results.append(res)
+
+    print("\nVerarbeitung abgeschlossen. Zusammenfassung:\n")
+    for r in results:
+        print(f"{r['file']}: distance={r['distance']}, feasible_all_strikes={r['all_feasible']}")
