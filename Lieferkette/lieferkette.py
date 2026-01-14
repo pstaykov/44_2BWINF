@@ -1,5 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import heapq
 
 
 def read_file(path):
@@ -45,46 +46,106 @@ def visualize_graph(Strassen, path=None):
     plt.show()
 
 
-def dijkstra_shortest_path(Streets, source, target):
-    nodes = set()
-    for start, end, weight in Streets:
-        nodes.add(start)
-        nodes.add(end)
+def build_adjacency_list(edge_list):
+    """Convert edge list [[u,v,w], ...] into adjacency dict {u: [(v,w), ...], ...}."""
+    adj = {}
+    for u, v, w in edge_list:
+        try:
+            wt = int(w)
+        except Exception:
+            wt = float('inf')
+        adj.setdefault(u, []).append((v, wt))
+        # ensure nodes without outgoing edges appear in adj
+        adj.setdefault(v, adj.get(v, []))
+    return adj
 
-    unvisited = nodes
+
+def reverse_graph(adj):
+    rev = {}
+    for u, nbrs in adj.items():
+        rev.setdefault(u, [])
+        for v, w in nbrs:
+            rev.setdefault(v, []).append((u, w))
+    return rev
+
+
+def dijkstra_single_source(adj, source, targets=None, return_prev=False):
+    """Heap-based Dijkstra from source over adjacency dict.
+
+    Args:
+        adj: dict {node: [(nbr, weight), ...]}
+        source: start node
+        targets: optional set of target nodes to early-stop when all found
+        return_prev: whether to also return predecessor map
+
+    Returns:
+        distances dict, and optionally prev dict
+    """
+
     distances = {source: 0}
-    previous = {}
+    prev = {}
+    seen = set()
+    heap = [(0, source)]
+    targets = set(targets) if targets is not None else None
+    found_targets = set()
 
-    while unvisited:
-        current_node = min(unvisited, key=lambda node: distances.get(node, float('inf')))
+    while heap:
+        dist_u, u = heapq.heappop(heap)
+        if u in seen:
+            continue
+        seen.add(u)
 
-        if distances.get(current_node, float('inf')) == float('inf') or current_node == target:
-            break
+        if targets is not None and u in targets:
+            found_targets.add(u)
+            if len(found_targets) == len(targets):
+                break
 
-        unvisited.remove(current_node)
+        for v, w in adj.get(u, []):
+            newd = dist_u + w
+            if newd < distances.get(v, float('inf')):
+                distances[v] = newd
+                prev[v] = u
+                heapq.heappush(heap, (newd, v))
 
-        for start, end, weight in Streets:
-            if start == current_node:
-                neighbor = end
-                weight_val = int(weight)
-                new_distance = distances[current_node] + weight_val
+    if return_prev:
+        return distances, prev
+    return distances
 
-                if new_distance < distances.get(neighbor, float('inf')):
-                    distances[neighbor] = new_distance
-                    previous[neighbor] = current_node
+
+def dijkstra_shortest_path(Streets, source, target):
+    """
+    Backwards-compatible wrapper that accepts either an adjacency dict or an edge list.
+    Returns (path_list, distance).
+    """
+    # Build adjacency list only if Streets is not already an adjacency dict
+    if isinstance(Streets, dict):
+        adj = Streets
+    else:
+        adj = build_adjacency_list(Streets)
+
+    # Run single-source Dijkstra with early stop on target
+    distances, prev = dijkstra_single_source(adj, source, targets={target}, return_prev=True)
+    dist = distances.get(target, float('inf'))
 
     path = []
-    curr = target
-    while curr in previous:
-        path.insert(0, curr)
-        curr = previous[curr]
-    if path:
-        path.insert(0, source)
+    if target in prev or (target == source and target in distances):
+        # reconstruct path
+        cur = target
+        path.append(cur)
+        while cur != source:
+            cur = prev.get(cur)
+            if cur is None:
+                break
+            path.insert(0, cur)
+    else:
+        # No path found
+        path = []
 
-    return path, distances.get(target, float("inf"))
+    return path, dist
 
 
 def create_layered_graph(Werke, Strassen):
+    # Build adjacency once and use Dijkstra from each source to the whole next stage
     factory_to_stage = {factory_id: int(stage) for factory_id, stage in Werke.items()}
 
     factories_by_stage = {}
@@ -94,27 +155,43 @@ def create_layered_graph(Werke, Strassen):
     layered_edges = []
     stages = sorted(factories_by_stage.keys())
 
-    for factory in factories_by_stage[stages[0]]:
-        _, distance = dijkstra_shortest_path(Strassen, "S", factory)
-        if distance != float('inf'):
-            layered_edges.append(["S", factory, int(distance)])
+    # build adjacency and reversed adjacency
+    adj = build_adjacency_list(Strassen)
+    rev_adj = reverse_graph(adj)
 
+    # S -> first stage: one run from S to all factories in first stage
+    first_stage_factories = factories_by_stage.get(stages[0], [])
+    if first_stage_factories:
+        distances = dijkstra_single_source(adj, "S", targets=set(first_stage_factories))
+        for factory in first_stage_factories:
+            d = distances.get(factory, float('inf'))
+            if d != float('inf'):
+                layered_edges.append(["S", factory, int(d)])
+
+    # between stages: for each factory in current stage, run Dijkstra once to all factories in next stage
     for i in range(len(stages) - 1):
-        for u in factories_by_stage[stages[i]]:
-            for v in factories_by_stage[stages[i + 1]]:
-                _, distance = dijkstra_shortest_path(Strassen, u, v)
-                if distance != float('inf'):
-                    layered_edges.append([u, v, int(distance)])
+        current_stage = factories_by_stage.get(stages[i], [])
+        next_stage = factories_by_stage.get(stages[i + 1], [])
+        next_set = set(next_stage)
+        for u in current_stage:
+            distances = dijkstra_single_source(adj, u, targets=next_set)
+            for v in next_stage:
+                d = distances.get(v, float('inf'))
+                if d != float('inf'):
+                    layered_edges.append([u, v, int(d)])
 
-    for factory in factories_by_stage[stages[-1]]:
-        _, distance = dijkstra_shortest_path(Strassen, factory, "T")
-        if distance != float('inf'):
-            layered_edges.append([factory, "T", int(distance)])
+    # last stage -> T: run Dijkstra on reversed graph from T to all last-stage factories
+    last_stage_factories = factories_by_stage.get(stages[-1], [])
+    if last_stage_factories:
+        distances_to_last = dijkstra_single_source(rev_adj, "T", targets=set(last_stage_factories))
+        for factory in last_stage_factories:
+            d = distances_to_last.get(factory, float('inf'))
+            if d != float('inf'):
+                layered_edges.append([factory, "T", int(d)])
 
     return layered_edges
 
 
-# Replace single-file execution with a reusable processor and CLI
 
 def process_file(file_path, visualize=False):
     try:
@@ -126,7 +203,10 @@ def process_file(file_path, visualize=False):
     print("\n" + "=" * 60)
     print(f"Verarbeite: {file_path}")
 
-    path, distance = dijkstra_shortest_path(Strassen, "S", "T")
+    # Build adjacency once for the street network so repeated shortest-paths are fast
+    adj = build_adjacency_list(Strassen)
+
+    path, distance = dijkstra_shortest_path(adj, "S", "T")
 
     layered_graph = create_layered_graph(Werke, Strassen)
 
@@ -137,7 +217,7 @@ def process_file(file_path, visualize=False):
     full_path = []
     if path_layered:
         for i in range(len(path_layered) - 1):
-            segment_path, _ = dijkstra_shortest_path(Strassen, path_layered[i], path_layered[i + 1])
+            segment_path, _ = dijkstra_shortest_path(adj, path_layered[i], path_layered[i + 1])
             if i == 0:
                 full_path.extend(segment_path)
             else:
@@ -197,7 +277,7 @@ def process_file(file_path, visualize=False):
                 filtered_layered_graph.append(edge)
 
         for alt_factory in factories_in_same_stage:
-            path, distance_alt = dijkstra_shortest_path(Strassen, strike_factory, alt_factory)
+            path, distance_alt = dijkstra_shortest_path(adj, strike_factory, alt_factory)
             if distance_alt != float('inf'):
                 filtered_layered_graph.append([strike_factory, alt_factory, int(distance_alt)])
 
@@ -225,7 +305,7 @@ def process_file(file_path, visualize=False):
         full_path_strike = []
         if path_with_strike and distance_with_strike != float('inf'):
             for i in range(len(path_with_strike) - 1):
-                segment_path, _ = dijkstra_shortest_path(Strassen, path_with_strike[i], path_with_strike[i+1])
+                segment_path, _ = dijkstra_shortest_path(adj, path_with_strike[i], path_with_strike[i+1])
                 if i == 0:
                     full_path_strike.extend(segment_path)
                 else:
