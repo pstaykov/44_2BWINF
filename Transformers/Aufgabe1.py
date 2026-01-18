@@ -98,7 +98,7 @@ def shape_signature(parts):
 
 
 
-# Connectivity Graph (correct!)
+# Connectivity Graph
 def build_piece_index(parts):
     """id -> piece dict, and (x,y) -> piece ids by type"""
     by_id = {}
@@ -111,7 +111,7 @@ def build_piece_index(parts):
 
 def build_adjacency(parts):
     """
-    Build graph edges based on actual construction rules:
+    Build graph edges based on construction rules:
     - Node 'o' connects to adjacent sticks (up/down '|' and left/right '-')
     - Vertical '|' connects to nodes up/down
     - Horizontal '-' connects to nodes left/right
