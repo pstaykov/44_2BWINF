@@ -160,4 +160,53 @@ def build_adjacency(parts):
 
     return adj
 
+def BFS(adj, start):
+    """
+    Breadth-first search that works in stages (levels) and computes clusters.
+    Returns the cluster of connected nodes starting from 'start' ending at every level of length 1.
+    """
 
+    distances = {start: 0}
+    visited = {start}
+    queue = deque([(start, 0)])
+
+    for neighbor in adj[start]:
+        distances[neighbor] = 1
+        visited.add(neighbor)
+        queue.append((neighbor, 1))
+
+    while queue:
+        node, level = queue.popleft()
+        for neighbor in adj[node]:
+            if neighbor not in visited:
+                distances[neighbor] = level + 1
+                visited.add(neighbor)
+                queue.append((neighbor, level + 1))
+
+    # check for stage count
+    counts = {}
+
+    for d in distances.values():
+        counts[d] = counts.get(d, 0) + 1
+
+    # filter counts to only include levels with count 1
+    result = tuple(sorted(count for level, count in counts.items() if count == 1))
+    return result
+
+
+def find_permutations(parts):
+    """
+    Find all permutations of the adjacency matrix adj.
+    Build every cluster for every node in the graph.
+    combine every possible permutation of the adjacency matrix adj.
+    """
+
+    by_id, _ = build_piece_index(parts)
+    adj = build_adjacency(parts)
+    perms = set()
+
+    for pid, piece in by_id.items():
+        if piece['type'] == 'o':
+            perms.add(BFS(adj, pid, by_id)[0])
+
+    return perms
