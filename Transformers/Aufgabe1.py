@@ -160,53 +160,60 @@ def build_adjacency(parts):
 
     return adj
 
-def BFS(adj, start):
+def BFS(adj, start, end_node):
     """
-    Breadth-first search that works in stages (levels) and computes clusters.
-    Returns the cluster of connected nodes starting from 'start' ending at every level of length 1.
+    BFS that searches through the whole cluster between start and end nodes. Removes all edges from end node and only keeps the first edge of start node.
+    doesnt return cluster if area between start and end is not connected or connects to start.
     """
-
-    distances = {start: 0}
+    adj = adj.remove(end_node)
     visited = {start}
-    queue = deque([(start, 0)])
+    queue = deque([start])
 
-    for neighbor in adj[start]:
-        distances[neighbor] = 1
-        visited.add(neighbor)
-        queue.append((neighbor, 1))
+
+    visited.add(adj[start][0])
+    queue.append(adj[start][0])
 
     while queue:
-        node, level = queue.popleft()
+        node = queue.popleft()
         for neighbor in adj[node]:
+            if neighbor == start:
+                return False
             if neighbor not in visited:
-                distances[neighbor] = level + 1
                 visited.add(neighbor)
-                queue.append((neighbor, level + 1))
+                queue.append(neighbor)
 
-    # check for stage count
-    counts = {}
+    return visited
 
-    for d in distances.values():
-        counts[d] = counts.get(d, 0) + 1
+def mirror_x(clust):
+    '''
+    Mirrors a cluster along the x-axis.
+    '''
+    maxx = max(clust, key=lambda x: x[0])[0]
+    minx = min(clust, key=lambda x: x[0])[0]
 
-    # filter counts to only include levels with count 1
-    result = tuple(sorted(count for level, count in counts.items() if count == 1))
-    return result
+    return [(maxx - x + minx, y) for x, y in clust]
 
+def mirror_y(clust):
+    '''
+    Mirrors a cluster along the y-axis.
+    '''
+    maxy = max(clust, key=lambda x: x[1])[1]
+    miny = min(clust, key=lambda x: x[1])[1]
 
-def find_permutations(parts):
-    """
-    Find all permutations of the adjacency matrix adj.
-    Build every cluster for every node in the graph.
-    combine every possible permutation of the adjacency matrix adj.
-    """
+    return [(x, maxy - y + miny) for x, y in clust]
 
-    by_id, _ = build_piece_index(parts)
-    adj = build_adjacency(parts)
-    perms = set()
-
-    for pid, piece in by_id.items():
-        if piece['type'] == 'o':
-            perms.add(BFS(adj, pid, by_id)[0])
-
-    return perms
+def find_clusters(adj, board):
+    for row in board:
+        i = 0
+        while i < len(row):
+            for j in range(0, len(row) - i, 2):
+                end = row[i + j]
+                clust = BFS(adj, row[i], end)
+                if clust:
+                    if len(clust) == j - i + 1:
+                        i = j
+                    elif mirror_x(clust) == clust:
+                        continue
+                    elif mirror_y(clust) == clust:
+                        return clust
+                i += 1
