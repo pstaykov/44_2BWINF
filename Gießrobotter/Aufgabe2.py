@@ -1,8 +1,6 @@
 import math
-import random
 import numpy as np
 
-random.seed(42)
 np.random.seed(42)
 
 
@@ -148,7 +146,7 @@ def find_optimal_k(nodes, max_len):
         return k_prev
 
     # Second point to be able to estimate slope
-    k_curr = 2
+    k_curr = 4
     d_curr = route_max_len_for_k(k_curr, nodes, max_len)
 
     # Safety against pathological cases
@@ -164,12 +162,11 @@ def find_optimal_k(nodes, max_len):
 
         # Compute interpolated next k
         if a < 0:
-            # d decreases with k (expected). Compute k_new from:
-            # k_new = k_curr + (Lmax - d_curr) / a
+            # d decreases with k (expected). Compute k_new
             k_float = k_curr + (max_len - d_curr) / a
             k_new = int(math.ceil(k_float))
         else:
-            # If the model says "not decreasing", fall back to a robust step (doubling-ish)
+            # If the model says "not decreasing", fall back to a robust step
             k_new = min(n, max(k_curr + 1, k_curr * 2))
 
         # Ensure progress and stay in bounds
@@ -181,7 +178,7 @@ def find_optimal_k(nodes, max_len):
         d_curr = route_max_len_for_k(k_curr, nodes, max_len)
 
     if d_curr > max_len:
-        # No feasible k found up to n (should be rare; depends on your definition of route)
+        # No feasible k found up to n
         return None
 
     k_start = k_prev
@@ -202,5 +199,5 @@ def find_optimal_k(nodes, max_len):
 
 
 if __name__ == "__main__":
-    nodes, max_len = read_file("A2_Gießroboter/roboter07.txt")
+    nodes, max_len = read_file("A2_Gießroboter/roboter11.txt")
     find_optimal_k(nodes, max_len)
