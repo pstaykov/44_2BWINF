@@ -240,6 +240,7 @@ def simulate_strike_times(adj, stages, source="S", target="T"):
        'base_total' : total time of the base plan,
        'base_sequence': [a1..am],
        'strike_alternative': (best_time_if_strike, alternative_sequence_including_replacement)
+    The alternative_sequence starts with the struck plant (the location where the strike occurs) and continues to T.
     """
     # compute base plan
     base_total, base_seq = find_best_sequence(adj, stages, source, target)
@@ -291,8 +292,8 @@ def simulate_strike_times(adj, stages, source="S", target="T"):
             total = time_to_struck + d_struck_to_b + tail_cost
             if total < best_alt:
                 best_alt = total
-                # build full sequence: base_seq up to i-1, replacement b, then tail_seq[1:] (exclude b duplicate)
-                full_seq = base_seq[:i] + tail_seq
+                # build alternative sequence starting with the struck plant and then the tail (which starts with b)
+                full_seq = [struck] + tail_seq
                 best_seq = full_seq
 
         results[struck] = {'best_time': best_alt, 'alt_sequence': best_seq}
@@ -303,6 +304,8 @@ def simulate_strike_times(adj, stages, source="S", target="T"):
 def main():
     # make base_dir relative to this script location so script runs from any CWD
     base_dir = os.path.join(os.path.dirname(__file__), "A3_Lieferkette")
+    out_dir = os.path.join(os.path.dirname(__file__), "outputs")
+    os.makedirs(out_dir, exist_ok=True)
 
     for fname in sorted(os.listdir(base_dir)):
         if not fname.startswith("lieferung"):
@@ -312,10 +315,6 @@ def main():
         T_max, stages, Strassen = read_file(path)
         adj = create_adj_dict(Strassen, Werke=stages)
 
-        # compute and print the normal Dijkstra path (S -> ... -> T)
-        base_path = dijkstra_path(adj, "S", "T")
-        base_path_str = " -> ".join(base_path) if base_path else "NO PATH"
-
         strike_times = simulate_strike_times(
             adj,
             stages,
@@ -323,30 +322,67 @@ def main():
             target="T"
         )
 
-        print(f"\n===== {fname} =====")
-        # print base plan info from the simulator
         base_info = strike_times.get('__base__', {})
         base_total = base_info.get('base_total', float('inf'))
         base_seq = base_info.get('base_sequence', [])
-        base_seq_str = ' -> '.join(base_seq) if base_seq else 'NO PLAN'
-        if base_total == float('inf'):
-            print(f"Base plan: NO PLAN")
-        else:
-            print(f"Base total time: {base_total}")
-            print(f"Base sequence: {base_seq_str}")
 
-        # per-strike alternatives (iterate in order of base sequence)
+        out_lines = []
+        if base_total == float('inf'):
+            # unsolvable
+            out_lines.append("UNMOEGLICH")
+            # write file and continue
+            out_path = os.path.join(out_dir, fname + ".out.txt")
+            with open(out_path, 'w', encoding='utf-8') as fo:
+                fo.write('\n'.join(out_lines) + '\n')
+            continue
+
+        # solvable
+        out_lines.append("MOEGLICH")
+
+        # compute maximal route duration that can occur after the plan
+        max_dur = base_total
+        any_inf = False
+        for node in base_seq:
+            info = strike_times.get(node, {})
+            best_time = info.get('best_time', float('inf'))
+            if best_time == float('inf'):
+                any_inf = True
+            else:
+                if best_time > max_dur:
+                    max_dur = best_time
+
+        if any_inf:
+            out_lines.append("UNMOEGLICH")
+        else:
+            out_lines.append(str(int(max_dur)))
+
+        # blank line
+        out_lines.append("")
+
+        # duration of route S->T without strike
+        out_lines.append(str(int(base_total)))
+        # the route from S to T without strike
+        out_lines.append(' -> '.join(base_seq) if base_seq else "")
+
+        # alternatives per struck node in base sequence
         for node in base_seq:
             info = strike_times.get(node, {})
             best_time = info.get('best_time', float('inf'))
             alt_seq = info.get('alt_sequence', [])
-            alt_seq_str = ' -> '.join(alt_seq) if alt_seq else 'NO PATH'
-            if best_time == float('inf'):
-                print(f"Strike at {node}: NO PATH")
-            elif best_time <= T_max:
-                print(f"Strike at {node}: {best_time} ≤ {T_max}; alt: {alt_seq_str}")
+            if best_time == float('inf') or not alt_seq:
+                out_lines.append("UNMOEGLICH")
+                out_lines.append("")
             else:
-                print(f"Strike at {node}: {best_time} > {T_max}; alt: {alt_seq_str}")
+                out_lines.append(str(int(best_time)))
+                # ensure alternative route starts with struck and ends with T
+                out_lines.append(' -> '.join(alt_seq))
+
+        # final blank line
+        out_lines.append("")
+
+        out_path = os.path.join(out_dir, fname + "_out.txt")
+        with open(out_path, 'w', encoding='utf-8') as fo:
+            fo.write('\n'.join(out_lines) + '\n')
 
 
 if __name__ == "__main__":
