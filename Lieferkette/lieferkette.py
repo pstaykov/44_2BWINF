@@ -29,7 +29,6 @@ def create_adj_dict(Strassen, Werke=None):
     adj = {}
     for u, v, w in Strassen:
         adj.setdefault(u, []).append([v, int(w)])
-    # ensure nodes from Werke exist in adj even if they have no outgoing edges
     if Werke:
         for n in Werke.keys():
             adj.setdefault(n, [])
@@ -331,7 +330,7 @@ def main():
             # unsolvable
             out_lines.append("UNMOEGLICH")
             # write file and continue
-            out_path = os.path.join(out_dir, fname + ".out.txt")
+            out_path = os.path.join(out_dir, fname + "_out.txt")
             with open(out_path, 'w', encoding='utf-8') as fo:
                 fo.write('\n'.join(out_lines) + '\n')
             continue
@@ -361,8 +360,13 @@ def main():
 
         # duration of route S->T without strike
         out_lines.append(str(int(base_total)))
-        # the route from S to T without strike
-        out_lines.append(' -> '.join(base_seq) if base_seq else "")
+        # the route from S to T without strike (include ending node T)
+        if base_seq:
+            # print plants as [node stage]
+            base_route = 'S ' + ' '.join(f'[{n} {stages[n]}]' for n in base_seq) + ' T'
+            out_lines.append(base_route)
+        else:
+            out_lines.append('S T')
 
         # alternatives per struck node in base sequence
         for node in base_seq:
@@ -370,12 +374,17 @@ def main():
             best_time = info.get('best_time', float('inf'))
             alt_seq = info.get('alt_sequence', [])
             if best_time == float('inf') or not alt_seq:
+                # alternative impossible for this struck plant
                 out_lines.append("UNMOEGLICH")
-                out_lines.append("")
             else:
                 out_lines.append(str(int(best_time)))
                 # ensure alternative route starts with struck and ends with T
-                out_lines.append(' -> '.join(alt_seq))
+                # alt_seq has the struck plant as first element followed by tail plants
+                if len(alt_seq) <= 1:
+                    out_lines.append(f"{alt_seq[0]} T")
+                else:
+                    rest = ' '.join(f'[{n} {stages[n]}]' for n in alt_seq[1:])
+                    out_lines.append(f"{alt_seq[0]} {rest} T")
 
         # final blank line
         out_lines.append("")
