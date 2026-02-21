@@ -45,17 +45,8 @@ def read_file(path: str):
 
     return nodes, max_len
 
-
 def euclidean_dist(p1, p2) -> float:
     return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
-
-
-def calculate_route_length_coords(coords) -> float:
-    total_dist = 0.0
-    for i in range(len(coords) - 1):
-        total_dist += euclidean_dist(coords[i], coords[i + 1])
-    return total_dist
-
 
 def kmeans(points, k, n_iter=100):
     """
@@ -146,7 +137,7 @@ def optimize_2opt_indices(path_indices, coords, max_iterations=100):
     return best_path
 
 
-def route_max_len_for_k(k: int, nodes, max_len: float) -> float:
+def route_max_len_for_k(k, nodes, max_len):
     """
     Compute d(k): the maximum route length across all clusters for given k.
     Early-exits if the max already exceeds max_len.

@@ -48,7 +48,6 @@ def dijkstra_all(adj, source):
 
     while heap:
         d_u, u = heapq.heappop(heap)
-        # stale entry check
         if d_u != dist[u]:
             continue
         for v, w in adj.get(u, []):
@@ -59,48 +58,6 @@ def dijkstra_all(adj, source):
                 heapq.heappush(heap, (nd, v))
 
     return dist, prev
-
-
-def dijkstra_path_from_prev(prev, source, target):
-    if target not in prev:
-        return []
-    if prev[target] is None and source != target:
-        # maybe direct unreachable
-        # attempt to build path if target==source
-        if source == target:
-            return [source]
-        return []
-    path = []
-    cur = target
-    while cur is not None:
-        path.insert(0, cur)
-        if cur == source:
-            break
-        cur = prev.get(cur)
-    return path
-
-
-def dijkstra_distance(adj, source, target):
-    dist, _ = dijkstra_all(adj, source)
-    return dist.get(target, float('inf'))
-
-
-def dijkstra_path(adj, source, target):
-    dist, prev = dijkstra_all(adj, source)
-    if dist.get(target, float('inf')) == float('inf'):
-        return []
-    return dijkstra_path_from_prev(prev, source, target)
-
-
-def remove_node(adj, node):
-    new_adj = {}
-    for u, edges in adj.items():
-        if u == node:
-            continue
-        new_edges = [[v, w] for v, w in edges if v != node]
-        new_adj[u] = new_edges
-    return new_adj
-
 
 def _compute_stage_nodes(stages):
     m = 0
