@@ -6,7 +6,7 @@ def read_file(path):
 
     T = int(raw[0])
     Schritte = raw[1]
-    WerkeSchritte = raw[2].split()  # list like ["A", "1", "B", "2", ...]
+    WerkeSchritte = raw[2].split()
     nWerke = int(raw[3])
 
     Werke_raw = [ln.split() for ln in raw[4:4 + nWerke]]
@@ -15,7 +15,7 @@ def read_file(path):
     nStrassen = int(raw[4 + nWerke])
     Strassen = [ln.split() for ln in raw[5 + nWerke:]]
 
-    # make bidirectional and ensure weights are ints
+    # make bidirectional
     Strassen_bidirectional = []
     for u, v, w in Strassen:
         Strassen_bidirectional.append([u, v, int(w)])
@@ -36,7 +36,11 @@ def create_adj_dict(Strassen, Werke=None):
 
 
 def dijkstra_all(adj, source):
-    # Dijkstra that returns distances and predecessors (heap-based implementation)
+    """
+    :param adj: adjacency list as dict: node -> list of (neighbor, weight)
+    :param source: starting node
+    :return: best distance dict from source to all nodes, best previous dict from source to all nodes
+    """
     import heapq
     INF = float('inf')
     dist = {n: INF for n in adj.keys()}
@@ -78,10 +82,14 @@ def _precompute_distances(adj, sources):
 
 
 def find_best_sequence(adj, stages, source='S', target='T'):
-    """Find best sequence (one plant per stage in order) minimizing total travel time.
-    Returns (total_cost, sequencelist) where sequencelist is [a1,...,am] or (inf, [])."""
+    """
+    :param adj: adjacency list as dict: node -> list of (neighbor, weight)
+    :param stages: node -> stage
+    :param source: starting node
+    :param target: ending node
+    :return: (total_time, sequence)
+    """
     m, stage_nodes = _compute_stage_nodes(stages)
-    # validate stages exist
     for k in range(1, m + 1):
         if k not in stage_nodes or not stage_nodes[k]:
             return float('inf'), []
@@ -91,10 +99,8 @@ def find_best_sequence(adj, stages, source='S', target='T'):
     dist_map = _precompute_distances(adj, sources)
 
     INF = float('inf')
-    # DP over stages
     dp_prev = {}
-    prev_choice = {}  # (k,node) -> previous node
-    # stage 1
+    prev_choice = {}
     for p in stage_nodes[1]:
         dp_prev[p] = dist_map[source].get(p, INF)
         prev_choice[(1, p)] = source
@@ -140,8 +146,14 @@ def find_best_sequence(adj, stages, source='S', target='T'):
 
 
 def _compute_tail_from_node(adj, stages, start_node, start_stage_index, dist_map):
-    """Given that start_node is chosen for stage start_stage_index, compute minimal tail sequence and cost from that node through stages start_stage_index..m and to T.
-    Returns (tail_cost_to_T, tail_sequence_for_stages_starting_at_index) where sequence includes start_node as stage start_stage_index."""
+    """
+    :param adj: adjacency list as dict: node -> list
+    :param stages: node -> stage
+    :param start_node: starting node
+    :param start_stage_index: path up to start_node is stage start_stage_index
+    :param dist_map: map from node to dict of distances to all nodes
+    :return: best_total_time, sequence
+    """
     m, stage_nodes = _compute_stage_nodes(stages)
     INF = float('inf')
     # DP starting with start_node as stage start_stage_index
@@ -192,26 +204,26 @@ def _compute_tail_from_node(adj, stages, start_node, start_stage_index, dist_map
 
 
 def simulate_strike_times(adj, stages, source="S", target="T"):
-    """Return a dict mapping each node on the chosen base sequence to a dict with keys:
-       'base_total' : total time of the base plan,
-       'base_sequence': [a1..am],
-       'strike_alternative': (best_time_if_strike, alternative_sequence_including_replacement)
-    The alternative_sequence starts with the struck plant (the location where the strike occurs) and continues to T.
     """
-    # compute base plan
+    :param adj: adjacency list as dict: node -> list
+    :param stages: node -> stage
+    :param source: starting node
+    :param target: target node
+    :return: dict with keys:
+    - '__base__': {'base_total': total_time, 'base_sequence': sequence}
+    - for each plant in base_sequence: {plant_node: {'best_time': best_time, 'alt_sequence': alt_sequence}}
+     where best_time is the best total time if the plant is struck and alt_sequence is the best sequence of plants to use starting with the struck plant and then the tail plants ending with T.
+    """
     base_total, base_seq = find_best_sequence(adj, stages, source, target)
     if base_total == float('inf'):
         return {'__base__': {'base_total': float('inf'), 'base_sequence': []}}
 
-    # precompute distances from S and all plant nodes
     sources = {source, target} | set(stages.keys())
     dist_map = _precompute_distances(adj, sources)
 
-    # compute prefix costs to reach each base_seq[i]
     prefix_costs = []
     cur_cost = 0
     if base_seq:
-        # cost to reach first plant
         cur_cost = dist_map[source].get(base_seq[0], float('inf'))
         prefix_costs.append(cur_cost)
         for i in range(1, len(base_seq)):
@@ -225,20 +237,15 @@ def simulate_strike_times(adj, stages, source="S", target="T"):
 
     for i, struck in enumerate(base_seq):
         stage_index = stages[struck]
-        # candidates are other plants in the same stage
         candidates = [v for v in stage_nodes.get(stage_index, []) if v != struck]
         best_alt = float('inf')
         best_seq = []
         if not candidates:
             results[struck] = {'best_time': float('inf'), 'alt_sequence': []}
             continue
-
-        # prefix cost to arrive at struck plant
         time_to_struck = prefix_costs[i]
 
-        # for each candidate replacement, compute tail cost starting from candidate
         for b in candidates:
-            # driver must drive from struck location to b
             d_struck_to_b = dist_map[struck].get(b, float('inf'))
             if d_struck_to_b == float('inf'):
                 continue
@@ -248,7 +255,6 @@ def simulate_strike_times(adj, stages, source="S", target="T"):
             total = time_to_struck + d_struck_to_b + tail_cost
             if total < best_alt:
                 best_alt = total
-                # build alternative sequence starting with the struck plant and then the tail (which starts with b)
                 full_seq = [struck] + tail_seq
                 best_seq = full_seq
 
@@ -258,7 +264,6 @@ def simulate_strike_times(adj, stages, source="S", target="T"):
 
 
 def main():
-    # make base_dir relative to this script location so script runs from any CWD
     base_dir = os.path.join(os.path.dirname(__file__), "A3_Lieferkette")
     out_dir = os.path.join(os.path.dirname(__file__), "outputs")
     os.makedirs(out_dir, exist_ok=True)
@@ -286,7 +291,6 @@ def main():
         if base_total == float('inf'):
             # unsolvable
             out_lines.append("UNMOEGLICH")
-            # write file and continue
             out_path = os.path.join(out_dir, fname + "_out.txt")
             with open(out_path, 'w', encoding='utf-8') as fo:
                 fo.write('\n'.join(out_lines) + '\n')
@@ -312,31 +316,23 @@ def main():
         else:
             out_lines.append(str(int(max_dur)))
 
-        # blank line
         out_lines.append("")
 
-        # duration of route S->T without strike
         out_lines.append(str(int(base_total)))
-        # the route from S to T without strike (include ending node T)
         if base_seq:
-            # print plants as [node stage]
             base_route = 'S ' + ' '.join(f'[{n} {stages[n]}]' for n in base_seq) + ' T'
             out_lines.append(base_route)
         else:
             out_lines.append('S T')
 
-        # alternatives per struck node in base sequence
         for node in base_seq:
             info = strike_times.get(node, {})
             best_time = info.get('best_time', float('inf'))
             alt_seq = info.get('alt_sequence', [])
             if best_time == float('inf') or not alt_seq:
-                # alternative impossible for this struck plant
                 out_lines.append("UNMOEGLICH")
             else:
                 out_lines.append(str(int(best_time)))
-                # ensure alternative route starts with struck and ends with T
-                # alt_seq has the struck plant as first element followed by tail plants
                 if len(alt_seq) <= 1:
                     out_lines.append(f"{alt_seq[0]} T")
                 else:

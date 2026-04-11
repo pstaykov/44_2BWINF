@@ -4,12 +4,9 @@ import os
 
 np.random.seed(42)
 
-
 def read_file(path: str):
     with open(path, "r", encoding="utf-8") as f:
         raw_lines = [ln.strip() for ln in f.readlines() if ln.strip() != ""]
-
-    # Find the first line that looks like a coordinate line (>=3 tokens).
     coord_start = None
     for i, ln in enumerate(raw_lines):
         parts = ln.split()
@@ -19,10 +16,7 @@ def read_file(path: str):
 
     if coord_start is None:
         raise ValueError("No coordinate lines found in input file")
-
-    # The line immediately before the first coordinate line is treated as the max route length
     if coord_start == 0:
-        # nothing before coordinates -> fallback: first line is max length and skip it
         max_len = float(raw_lines[0])
         start_idx = 1
     else:
@@ -39,7 +33,6 @@ def read_file(path: str):
             x = int(parts[1])
             y = int(parts[2])
         except ValueError:
-            # skip malformed lines
             continue
         nodes.append((id_, x, y))
 
@@ -58,13 +51,11 @@ def kmeans(points, k, n_iter=100):
     if k <= 0:
         return [[] for _ in range(k)], np.zeros((0, 2))
     if k > n:
-        # too many clusters, some will be empty
         k = n
 
     centroids = coords[np.random.choice(coords.shape[0], k, replace=False)]
 
     for _ in range(n_iter):
-        # compute distances matrix (n x k)
         distances = np.sqrt(((coords[:, None, :] - centroids[None, :, :]) ** 2).sum(axis=2))
         closest_indices = np.argmin(distances, axis=1)
 
@@ -89,7 +80,8 @@ def kmeans(points, k, n_iter=100):
 
 
 def solve_tsp_indices(indices, coords):
-    """Nearest-neighbor heuristic starting from the first index in indices.
+    """
+    Nearest-neighbor heuristic starting from the first index in indices.
     coords: list-like of (x,y) for all points; indices: list of integer indices of the points in this cluster.
     Returns ordered list of indices and total length.
     """
@@ -103,7 +95,6 @@ def solve_tsp_indices(indices, coords):
 
     while unvisited:
         last = coords[path[-1]]
-        # choose next by minimal euclidean distance
         next_idx = min(range(len(unvisited)), key=lambda i: euclidean_dist(last, coords[unvisited[i]]))
         path.append(unvisited.pop(next_idx))
 
@@ -165,10 +156,9 @@ def k_works(k, nodes, max_len):
 
 def find_optimal_k(nodes, max_len):
     """
-    Implements:
-      1) Interpolation-based growth of k using a local linear model between (k_prev, d_prev) and (k_curr, d_curr)
-         until d(k_curr) <= L_max.
-      2) Binary search on [k_start, k_curr] to find the smallest k* with d(k*) <= L_max.
+    Interpolation-based growth of k using a local linear model between (k_prev, d_prev) and (k_curr, d_curr)
+    until d(k_curr) <= L_max.
+    Binary search on [k_start, k_curr] to find the smallest k* with d(k*) <= L_max.
     Returns minimal k or None if not found.
     """
     n = len(nodes)
@@ -177,7 +167,7 @@ def find_optimal_k(nodes, max_len):
     if n == 1:
         return 1
 
-    # find an upper bound k_curr that works (d(k_curr) <= max_len)
+    # find an upper bound k_curr
     k_prev = 3
     d_prev = route_max_len_for_k(k_prev, nodes, max_len)
 
@@ -185,31 +175,26 @@ def find_optimal_k(nodes, max_len):
         print(f"K={k_prev} works")
         return k_prev
 
-    # Second point to be able to estimate slope
     k_curr = 4
     d_curr = route_max_len_for_k(k_curr, nodes, max_len)
 
-    # Safety against pathological cases
     max_steps = 50
     steps = 0
 
     while d_curr > max_len and k_curr < n and steps < max_steps:
         steps += 1
 
-        # Estimate slope a from two consecutive measurements
         denom = (k_curr - k_prev)
         a = (d_curr - d_prev) / denom if denom != 0 else 0.0
 
         # Compute interpolated next k
         if a < 0:
-            # d decreases with k (expected). Compute k_new
             k_float = k_curr + (max_len - d_curr) / a
             k_new = int(math.ceil(k_float))
         else:
-            # If the model says "not decreasing", fall back to a robust step
+            # fallback to robust step
             k_new = min(n, max(k_curr + 1, k_curr * 2))
 
-        # Ensure progress and stay in bounds
         k_new = max(k_new, k_curr + 1)
         k_new = min(k_new, n)
 
@@ -218,14 +203,12 @@ def find_optimal_k(nodes, max_len):
         d_curr = route_max_len_for_k(k_curr, nodes, max_len)
 
     if d_curr > max_len:
-        # No feasible k found up to n
         return None
 
     k_start = k_prev
     lo = k_start + 1
     hi = k_curr
 
-    # binary search for minimal k that works
     while lo < hi:
         mid = (lo + hi) // 2
         d_mid = route_max_len_for_k(mid, nodes, max_len)
@@ -239,7 +222,8 @@ def find_optimal_k(nodes, max_len):
 
 
 def build_routes_for_k(nodes, k):
-    """Return list of routes per cluster for given k.
+    """
+    Return list of routes per cluster for given k.
     Each route is a dict: { 'ids': [id,...], 'coords': [(x,y),...], 'length': float, 'station': (x,y) }
     Station is cluster centroid (rounded to int).
     """
@@ -266,7 +250,6 @@ def build_routes_for_k(nodes, k):
 
 
 if __name__ == "__main__":
-    # Determine script and input/output directories
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_dir = os.path.join(script_dir, "A2_Gießroboter")
     outputs_dir = os.path.join(script_dir, "outputs")
@@ -282,7 +265,6 @@ if __name__ == "__main__":
             print(f"No .txt input files found in {input_dir}")
 
         for fname in txt_files:
-            # Skip files that look like outputs (already processed)
             if fname.endswith('_out.txt'):
                 continue
 
@@ -298,7 +280,6 @@ if __name__ == "__main__":
                 k = find_optimal_k(nodes, max_len)
                 if k is None:
                     print(f"  Could not find feasible number of robots for {fname}")
-                    # Still write an output indicating failure (0 robots)
                     out_name = fname + "_out.txt"
                     out_path = os.path.join(outputs_dir, out_name)
                     with open(out_path, 'w', encoding='utf-8') as out:
