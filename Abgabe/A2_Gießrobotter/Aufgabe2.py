@@ -4,6 +4,7 @@ import os
 
 np.random.seed(42)
 
+
 def read_file(path: str):
     with open(path, "r", encoding="utf-8") as f:
         raw_lines = [ln.strip() for ln in f.readlines() if ln.strip() != ""]
@@ -38,8 +39,10 @@ def read_file(path: str):
 
     return nodes, max_len
 
+
 def euclidean_dist(p1, p2) -> float:
     return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
+
 
 def kmeans(points, k, n_iter=100):
     """
@@ -225,16 +228,17 @@ def build_routes_for_k(nodes, k):
     """
     Return list of routes per cluster for given k.
     Each route is a dict: { 'ids': [id,...], 'coords': [(x,y),...], 'length': float, 'station': (x,y) }
-    Station is cluster centroid (rounded to int).
+    Station is the first tree in the route.
     """
     coords = [(x, y) for (_id, x, y) in nodes]
-    id_list = [ _id for (_id, x, y) in nodes]
+    id_list = [_id for (_id, x, y) in nodes]
     clusters, centroids = kmeans(coords, k)
 
     routes = []
     for ci, clust in enumerate(clusters):
         if not clust:
-            routes.append({'ids': [], 'coords': [], 'length': 0.0, 'station': (int(round(centroids[ci][0])), int(round(centroids[ci][1])) )})
+            routes.append({'ids': [], 'coords': [], 'length': 0.0,
+                           'station': (int(round(centroids[ci][0])), int(round(centroids[ci][1])))})
             continue
         path, _ = solve_tsp_indices(clust, coords)
         path = optimize_2opt_indices(path, coords)
@@ -243,7 +247,9 @@ def build_routes_for_k(nodes, k):
         length = 0.0
         for i in range(len(route_coords) - 1):
             length += euclidean_dist(route_coords[i], route_coords[i + 1])
-        station = (int(round(centroids[ci][0])), int(round(centroids[ci][1])))
+
+        # Ladestation ist die Koordinate des ersten Baums auf der Route
+        station = (int(route_coords[0][0]), int(route_coords[0][1]))
         routes.append({'ids': route_ids, 'coords': route_coords, 'length': length, 'station': station})
 
     return routes

@@ -287,38 +287,34 @@ def main():
         base_total = base_info.get('base_total', float('inf'))
         base_seq = base_info.get('base_sequence', [])
 
-        out_lines = []
-        if base_total == float('inf'):
-            # unsolvable
-            out_lines.append("UNMOEGLICH")
-            out_path = os.path.join(out_dir, fname + "_out.txt")
-            with open(out_path, 'w', encoding='utf-8') as fo:
-                fo.write('\n'.join(out_lines) + '\n')
-            continue
-
-        # solvable
-        out_lines.append("MOEGLICH")
-
-        # compute maximal route duration that can occur after the plan
+        # 1. ZUERST die maximale Dauer und Machbarkeit berechnen
         max_dur = base_total
         any_inf = False
+
         for node in base_seq:
             info = strike_times.get(node, {})
             best_time = info.get('best_time', float('inf'))
             if best_time == float('inf'):
                 any_inf = True
-            else:
-                if best_time > max_dur:
-                    max_dur = best_time
+            elif best_time > max_dur:
+                max_dur = best_time
 
-        if any_inf:
-            out_lines.append("UNMOEGLICH")
-        else:
-            out_lines.append(str(int(max_dur)))
+        # 2. ÜBERPRÜFEN: Ist das Ziel unerreichbar ODER dauert es länger als T_max?
+        if base_total == float('inf') or any_inf or max_dur > T_max:
+            # Plan ist komplett UNMOEGLICH
+            out_path = os.path.join(out_dir, fname + "_out.txt")
+            with open(out_path, 'w', encoding='utf-8') as fo:
+                fo.write("UNMOEGLICH\n")
+            continue
 
-        out_lines.append("")
+        # 3. Wenn alles passt, baue den "MOEGLICH" Output zusammen
+        out_lines = [
+            "MOEGLICH",
+            str(int(max_dur)),
+            "",
+            str(int(base_total))
+        ]
 
-        out_lines.append(str(int(base_total)))
         if base_seq:
             base_route = 'S ' + ' '.join(f'[{n} {stages[n]}]' for n in base_seq) + ' T'
             out_lines.append(base_route)
@@ -329,17 +325,15 @@ def main():
             info = strike_times.get(node, {})
             best_time = info.get('best_time', float('inf'))
             alt_seq = info.get('alt_sequence', [])
-            if best_time == float('inf') or not alt_seq:
-                out_lines.append("UNMOEGLICH")
-            else:
-                out_lines.append(str(int(best_time)))
-                if len(alt_seq) <= 1:
-                    out_lines.append(f"{alt_seq[0]} T")
-                else:
-                    rest = ' '.join(f'[{n} {stages[n]}]' for n in alt_seq[1:])
-                    out_lines.append(f"{alt_seq[0]} {rest} T")
 
-        # final blank line
+            out_lines.append(str(int(best_time)))
+            if len(alt_seq) <= 1:
+                out_lines.append(f"{alt_seq[0]} T")
+            else:
+                rest = ' '.join(f'[{n} {stages[n]}]' for n in alt_seq[1:])
+                out_lines.append(f"{alt_seq[0]} {rest} T")
+
+        # Finale Leerzeile
         out_lines.append("")
 
         out_path = os.path.join(out_dir, fname + "_out.txt")
